@@ -1,0 +1,97 @@
+@model MyMonitorHub.Web.Models.RoleMaintModel
+@{
+    ViewBag.Title = "Role";
+    ViewBag.currentZonePage = "role";
+    var index = 0;
+}
+@section Styles
+{
+    <style>
+.top-buffer { margin-top:15px; }       
+    </style>
+}
+@section javascripts {
+
+    <script src="~/Scripts/knockout-3.5.0.js"></script>
+    <script src="~/Scripts/knockout.mapping-latest.js"></script>
+
+    <script type="text/javascript">
+
+        var data = @Json.Serialize(Model.Data);
+        var viewModel = ko.mapping.fromJS(data);
+
+        $(document).ready(function() {
+            ko.applyBindings(viewModel);
+
+            $("#btnCancel").click(function() {
+                window.location = '@Url.Action("Roles","Role")';
+            });
+            $("#btnSave").click(function() {
+
+                var unmapped1 = ko.toJS(viewModel);
+
+                $.ajax({
+                    cache: false,
+                    type: "POST",
+                    url: "@Url.Action("Save", "Role", new {id = "0"})",
+                    data: unmapped1,
+                    dataType: 'json',
+                    accept: 'application/json',
+
+                    error: function(xhr, ajaxOptions, thrownError) {
+                        var message = xhr.status + " - " + thrownError;
+                        $("#processing-result").text(message).removeClass('').addClass('alert').addClass('alert-warning').show();
+                    },
+                    success: function(data) {
+                        window.location = '@Url.Action("Roles","Role")';
+                    }
+                });
+            });
+
+        });
+
+    </script>
+}
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">New Role</div>
+        </div>
+        <div class="card-body">
+            <div id='processing-result' style="display: none;"></div>
+            <div class="row">
+                <div class="form-group col-md-3">
+                    <input id="txtName" type="text" class="form-control" data-bind="value: name" placeholder="Name">
+                </div>
+                <div class="form-group col-md-5">
+                    <input id="txtDescription" type="text" class="form-control" data-bind="value: description" placeholder="Description">
+                </div>
+                <div class="form-group col-md-4">
+                    <div class="float-end">
+                        <button id="btnSave" class="btn btn-secondary">Save</button>
+                        <button id="btnCancel" class="btn btn-secondary">Cancel</button>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12">
+
+                    <table class="table table-sm">
+
+                        @foreach (var category in @Model.Layout)
+                        {
+                            <tr class="table-active fw-bold"><td colspan="2">@category.Description</td></tr>
+
+                            foreach (var permission in category.AccessCodes)
+                            {
+                                <tr>
+                                    <td><input id='group@(index)' class="checkboxes" type="checkbox" data-bind="checked: permissions()[@index].check" /></td>
+                                    <td><label for='group@(index)'>@permission.Description</label></td>
+                                </tr>
+                                index++;
+                            }
+                        }
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>

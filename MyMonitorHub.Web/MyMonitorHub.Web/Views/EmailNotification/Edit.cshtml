@@ -1,0 +1,108 @@
+@using MyMonitorHub.Domain.Security
+@model MyMonitorHub.Domain.Service.EmailNotificationService.EmailNotificationModel
+@{
+    ViewBag.Title = "Email Notification Maintenance";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var backUrl = Url.Action("AlertMaintenance", "Settings", new {id = Model.UserId} );
+}
+
+@section styles {
+    <link href="~/Content/showLoading.css" rel="stylesheet" />
+    <style>
+        .ms-notes-area {
+            padding-top: 10px;
+        }
+        .ms-notes-area td {
+            padding-left: 10px;
+            padding-left: 10px;
+        }
+    </style>
+}
+
+@section JavaScripts {
+<script src="~/Scripts/jquery.showLoading.js"></script>
+<script src="~/Scripts/jquery.validate.min.js"></script>
+    <script src="~/Scripts/jquery.validate.unobtrusive.min.js"></script>
+<script src="~/Scripts/knockout-3.5.0.js"></script>
+    <script src="~/Scripts/knockout.mapping-latest.js"></script>
+    <script>
+
+        var isValidGuid = function (value) {
+            var validGuid = /^({|()?[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}(}|))?$/;
+            var emptyGuid = /^({|()?0{8}-(0{4}-){3}0{12}(}|))?$/;
+            return validGuid.test(value) && !emptyGuid.test(value);
+        }
+        $.validator.addMethod("isValidGuid", function (value, element) {
+            return isValidGuid(value);
+        }, 'Please select a valid and non empty Guid value.');
+
+        var viewModel = ko.mapping.fromJS(@Json.Serialize(Model));
+        $(document).ready(function () {
+            ko.applyBindings(viewModel);
+            $('#btnSave').click(function () {
+                if ($("#mainForm").valid()) {
+
+                    @* format the data into a json string *@
+                    var data = ko.toJSON(viewModel);
+
+                    $("#mainBody").showLoading();
+                    $.ajax({
+                        url: '@Url.Action("Edit", "EmailNotification")',
+                        type: "POST",
+                        data: data,
+                        contentType: "application/json; charset=utf-8",
+                        cache: false,
+                        success: function (result) {
+                            if (result.status === "Success") {
+                                window.location = "@backUrl";
+                            } else {
+                                displayMessage("Failed. Reason: <strong>" + result.reason + "</strong>", "fail");
+                            }
+                        },
+                        error: function (xhr, ajaxOptions, thrownError) {
+                            displayMessage("Failed. Reason: <strong>" + thrownError + "</strong>", "fail");
+                        },
+                        complete: function (data) {
+                            $("#mainBody").hideLoading();
+                        }
+                    });
+
+                }
+            });
+
+        });
+
+    </script>
+}
+
+<div class="card">
+    <div class="card-header">
+        <div class="card-title">Email Notification Maintenance</div>
+    </div>
+
+    <div id="mainBody" class="card-body">
+        <form id="mainForm">
+            <legend class="mb-3">
+                @if (Model.EmailNotificationId == -1) { <text>Add Email</text> } else { <text>Change Email</text> }
+            </legend>
+
+            <div class="row mb-2 col-lg-6">
+                <label class="col-sm-4 col-form-label text-sm-end" for="Email">Email</label>
+                <div class="col-sm-8">
+                    <input data-bind="value: email" class="form-control" id="Email" name="Email" type="text" />
+                </div>
+            </div>
+            <div class="row mb-2 col-lg-6">
+                <label class="col-sm-4 col-form-label text-sm-end" for="Disabled">Disabled</label>
+                <div class="col-sm-8 d-flex align-items-center">
+                    <input data-bind="checked: disabled" class="form-check-input" id="Disabled" name="Disabled" type="checkbox" />
+                </div>
+            </div>
+        </form>
+
+        <div class="text-end mt-3">
+            <button id="btnSave" class="btn btn-primary" type="button">Save</button>
+            <a href="@backUrl" class="btn btn-secondary">Cancel</a>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+
+  <Package Name="MyMonitorHub Agent"
+           Version="$(var.ProductVersion)"
+           Manufacturer="MakaroSoft"
+           UpgradeCode="{A7F2E4C8-3B1D-4A5F-9E2C-7D8B3F4A6E1C}"
+           Language="1033"
+           Compressed="yes"
+           Scope="perMachine">
+
+    <!--
+      Prevent installing an older version over a newer one.
+      Each build gets a new package code (auto) while UpgradeCode stays constant,
+      so upgrades work with Add/Remove Programs.
+    -->
+    <MajorUpgrade DowngradeErrorMessage="!(loc.DowngradeError)" />
+
+    <MediaTemplate EmbedCab="yes" />
+
+    <!-- Minimal UI: license agreement + one-click install; appropriate for a service agent. -->
+    <ui:WixUI Id="WixUI_Minimal" />
+
+    <!-- Replace WiX's built-in Lorem Ipsum placeholder with the actual MIT license. -->
+    <WixVariable Id="WixUILicenseRtf" Value="license.rtf" />
+
+    <!-- Install root: C:\Program Files\MyMonitorHub.Agent\ -->
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="MyMonitorHub.Agent" />
+    </StandardDirectory>
+
+    <!-- Start Menu folder: Start Menu\Programs\MyMonitorHub.Agent\ -->
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="AppMenuFolder" Name="MyMonitorHub.Agent" />
+    </StandardDirectory>
+
+    <Feature Id="ProductFeature" Title="MyMonitorHub Agent" Level="1">
+      <!-- Explicit component for the service exe (carries ServiceInstall + ServiceControl) -->
+      <ComponentRef Id="ServiceExeComponent" />
+      <!-- All other published files (dependencies, Setup exe, content files) -->
+      <ComponentGroupRef Id="AgentFilesGroup" />
+      <!-- Start Menu shortcut to the Setup UI -->
+      <ComponentRef Id="StartMenuShortcut" />
+    </Feature>
+
+  </Package>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       Service executable — defined explicitly so we can attach
+       ServiceInstall and ServiceControl to it.
+       ═══════════════════════════════════════════════════════════════════ -->
+  <Fragment>
+    <Component Id="ServiceExeComponent" Directory="INSTALLFOLDER">
+      <File Id="AgentServiceExe"
+            Source="$(var.CombinedPublishDir)MyMonitorHub.Agent.Service.exe"
+            KeyPath="yes" />
+
+      <!--
+        Registers the Windows service. Start="auto" means the service starts
+        automatically when Windows boots, but the MSI does NOT start it on
+        install (no Start="install" on ServiceControl below).
+      -->
+      <ServiceInstall Id="AgentServiceInstall"
+                      Name="MyMonitorHubAgent"
+                      DisplayName="MyMonitorHub Agent"
+                      Description="MyMonitorHub monitoring agent service"
+                      Type="ownProcess"
+                      Start="auto"
+                      ErrorControl="normal"
+                      Account="LocalSystem" />
+
+      <!--
+        Stop the service during repair/uninstall; remove it on uninstall.
+        The service is NOT started automatically by the installer — use
+        the Setup UI (MyMonitorHub.Agent.Setup.exe) or Services snap-in.
+      -->
+      <ServiceControl Id="AgentServiceControl"
+                      Name="MyMonitorHubAgent"
+                      Stop="both"
+                      Remove="uninstall" />
+    </Component>
+  </Fragment>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       All other published files — dependencies, Setup exe, appsettings.json,
+       license.rtf, Version.txt, etc.
+       Points at the harvest\ folder which contains everything from publish\
+       except the service exe (excluded by MSBuild before WiX runs, because
+       WiX v7 <Files> has no Exclude attribute).
+       ═══════════════════════════════════════════════════════════════════ -->
+  <Fragment>
+    <ComponentGroup Id="AgentFilesGroup" Directory="INSTALLFOLDER">
+      <Files Include="$(var.HarvestDir)*" />
+    </ComponentGroup>
+  </Fragment>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       Start Menu shortcut pointing to the Setup / management UI.
+       A registry key is used as the KeyPath (required for shortcuts in WiX
+       because shortcuts themselves cannot be KeyPaths).
+       ═══════════════════════════════════════════════════════════════════ -->
+  <Fragment>
+    <Component Id="StartMenuShortcut" Directory="AppMenuFolder">
+      <Shortcut Id="SetupShortcut"
+                Name="MyMonitorHub Agent Setup"
+                Target="[INSTALLFOLDER]MyMonitorHub.Agent.Setup.exe"
+                WorkingDirectory="INSTALLFOLDER" />
+      <RemoveFolder Id="CleanupMenuFolder"
+                    Directory="AppMenuFolder"
+                    On="uninstall" />
+      <RegistryValue Root="HKCU"
+                     Key="Software\MakaroSoft\MyMonitorHubAgent"
+                     Name="installed"
+                     Type="integer"
+                     Value="1"
+                     KeyPath="yes" />
+    </Component>
+  </Fragment>
+
+</Wix>

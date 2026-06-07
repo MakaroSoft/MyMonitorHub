@@ -1,0 +1,20 @@
+.loading-indicator2 {
+	height: 80px;
+	width: 80px;
+	background: url( 'ms/images/hourglass.gif' );
+	background-repeat: no-repeat;
+	background-position: center center;
+}
+.loading-indicator {
+	height: 80px;
+	width: 80px;
+	background: url( 'ms/images/loading.gif' );
+	background-repeat: no-repeat;
+	background-position: center center;
+}
+
+.loading-indicator-overlay {
+	background-color: #FFFFFF;
+	opacity: 0.6;
+	filter: alpha(opacity = 60);
+}

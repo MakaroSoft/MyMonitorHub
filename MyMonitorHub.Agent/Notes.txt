@@ -1,0 +1,24 @@
+make windows client more stable.
+	Add recovery options on service
+	if reporting thread hasnt been able to get a message out for x number of minutes then crash the system to have the recovery service restart it
+	Can I turn on recovery by default on new installations?
+Auto Update:
+	pause for a while before unzipping the files.
+Web Dashboard
+	Use signalR to collect data about the current status
+	format screen. maybe two columns.
+	copy 10 cpu options
+	current memory (physical memory,)
+	current cpu
+	name of the processor
+	last booted
+	events
+	processes
+	networ traffic
+	ads viewer
+
+Clean up front end
+Change help to contact
+add bootstrap!
+
+

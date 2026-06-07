@@ -1,0 +1,276 @@
+@using MyMonitorHub.Domain.Security
+@model MyMonitorHub.Domain.Models.DeviceDetailModel
+@{
+    ViewBag.Title = "Device Maintenance";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var disable = "";
+    if (!Authorizer.Authorize(Permissions.CanEditDeviceMaint))
+    {
+        disable = "disabled = 'disabled'";
+    }
+    var cancelUrl = Url.Action("Edit", "Device", new { id = ViewContext.RouteData.Values["id"] });
+    var deviceGroupId = Context.Request.Query["deviceGroupId"].ToString();
+    if (!string.IsNullOrEmpty(deviceGroupId))
+    {
+        cancelUrl += "?deviceGroupId=" + deviceGroupId;
+    }
+    bool isNew = Model.DeviceId == -1;
+}
+
+@section styles {
+    <link href="~/Content/showLoading.css" rel="stylesheet" />
+    <style>
+        .ms-notes-area {
+            padding-top: 10px;
+        }
+        .ms-notes-area td {
+            padding-left: 10px;
+            padding-left: 10px;
+        }
+    </style>
+}
+
+@section JavaScripts {
+<script src="~/Scripts/jquery.showLoading.js"></script>
+<script src="~/Scripts/jquery.validate.min.js"></script>
+    <script src="~/Scripts/jquery.validate.unobtrusive.min.js"></script>
+<script src="~/Scripts/knockout-3.5.0.js"></script>
+<script src="~/Scripts/knockout.mapping-latest.js"></script>
+<script src="@Url.Content("~/Scripts/MarkdownDeepLib.min.js")" type="text/javascript"></script>
+    <script>
+
+        var isValidApiKey = function (value) {
+            // mma_ prefix + 32 hex chars
+            return /^mma_[0-9a-f]{32}$/.test(value);
+        }
+        @if (isNew)
+        {
+            <text>
+        $.validator.addMethod("isValidApiKey", function (value, element) {
+            return isValidApiKey(value);
+        }, 'API Key must be in the format: mma_ followed by 32 lowercase hex characters.');
+            </text>
+        }
+
+        var viewModel = ko.mapping.fromJS(@Json.Serialize(Model));
+        $(document).ready(function () {
+            @if (isNew)
+            {
+                <text>
+            $("#mainForm").validate({
+                rules: {
+                    ApiKey: { isValidApiKey: true }
+                }
+            });
+                </text>
+            }
+            else
+            {
+                <text>
+            $('#btnRotateKey').click(function () {
+                $.ajax({
+                    url: '@Url.Action("GenerateApiKey", "Device")',
+                    type: 'POST',
+                    success: function (result) {
+                        viewModel.apiKey(result.apiKey);
+                        $('#apiKeyDisplay').text(result.apiKey).removeClass('text-muted fst-italic').addClass('text-success fw-bold font-monospace');
+                        $('#apiKeyWarning').show();
+                    }
+                });
+            });
+                </text>
+            }
+            ko.applyBindings(viewModel);
+            $('#btnSave').click(function () {
+                if ($("#mainForm").valid()) {
+
+                    @* format the data into a json string *@
+                    var data = ko.toJSON(viewModel);
+
+                    $("#mainBody").showLoading();
+
+                    $.ajax({
+                        url: '@Url.Action("Edit", "Device")',
+                        type: "POST",
+                        data: data,
+                        contentType: "application/json; charset=utf-8",
+                        cache: false,
+                        success: function (result) {
+                            if (result.status === "Success") {
+                                @if (isNew)
+                                {
+                                    <text>
+                                window.location = "@Url.Action("Edit","DeviceGroup", new { id = Model.DeviceGroupId})";
+                                return;
+                                    </text>
+                                }
+                                else
+                                {
+                                    <text>
+                                viewModel.title(viewModel.description());
+                                $("#alertFail").hide();
+                                $("#alertSuccess")
+                                    .html(result.response)
+                                    .show();
+                                    </text>
+
+                                }
+                            } else {
+                                $("#alertSuccess").hide();
+                                $("#alertFail")
+                                    .html("Failed. Reason: <strong>" + result.reason + "</strong>")
+                                    .show();
+
+                            }
+                        },
+                        error: function (xhr, ajaxOptions, thrownError) {
+                            $("#alertSuccess").hide();
+                            $("#alertFail")
+                                .html("Failed. Reason: <strong>" + thrownError + "</strong>")
+                                .show();
+                        },
+                        complete: function (data) {
+                            $("#mainBody").hideLoading();
+                        }
+                    });
+
+
+                }
+            });
+
+            $('#myModal').on('show.bs.modal', function (event) {
+                $('#notesId').val(viewModel.notes());
+            });
+            $("#btnClose").click(function () {
+                var notes = $('#notesId').val();
+
+                var markdown = new MarkdownDeep.Markdown();
+                markdown.ExtraMode = true;
+                markdown.SafeMode = false;
+
+                var notesMd = markdown.Transform(notes);
+                viewModel.notes(notes);
+                $('#notesMD').html(notesMd);
+
+
+                $('#myModal').modal('hide');
+            });
+
+        });
+
+    </script>
+}
+
+<div class="card">
+    <div class="card-header">
+        <div class="card-title d-flex align-items-center">
+            <span>Device Maintenance</span>
+            @if (Authorizer.Authorize(Permissions.CanViewPage))
+            {
+                <a class="btn btn-secondary btn-sm ms-auto" href="@Url.Action("Detail","Device", new {id = Model.DeviceId})">View</a>
+            }
+        </div>
+    </div>
+
+    <div id="mainBody" class="card-body">
+        <form id="mainForm">
+            <div class="row">
+                <div class="col-lg-6">
+                    <legend class="mb-3">
+                        <a class="underline" data-bind="attr: { href: '@Url.Action("Edit", "DeviceGroup")/'+deviceGroupId() }, text: deviceGroupDescription"></a> - <span data-bind="text: title"></span>
+                    </legend>
+
+                    <div class="row mb-2">
+                        <label class="col-sm-4 col-form-label text-sm-end" for="AccountId">Account Id</label>
+                        <div class="col-sm-8">
+                            <input data-bind="value: accountId" class="form-control" id="AccountId" name="AccountId" type="text" disabled="disabled" />
+                        </div>
+                    </div>
+                    <div class="row mb-2">
+                        <label class="col-sm-4 col-form-label text-sm-end" for="DeviceId">Device Id</label>
+                        <div class="col-sm-8">
+                            <input data-bind="value: deviceId" class="form-control" id="DeviceId" name="DeviceId" type="text" disabled="disabled" />
+                        </div>
+                    </div>
+                    <div class="row mb-2">
+                        <label class="col-sm-4 col-form-label text-sm-end" for="ApiKey">API Key</label>
+                        <div class="col-sm-8">
+                            @if (isNew)
+                            {
+                                <input data-bind="value: apiKey" class="form-control font-monospace" id="ApiKey" name="ApiKey" type="text" @disable required />
+                                <div class="alert alert-warning mt-2 mb-0 py-2">
+                                    <strong>Copy this key now</strong> — it will not be shown again once you leave this page.
+                                    Configure your agent's <code>appsettings.json</code> with this key, then click <strong>Save</strong> to commit.
+                                </div>
+                            }
+                            else
+                            {
+                                <div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span id="apiKeyDisplay" class="text-muted fst-italic">(configured — click Rotate to replace)</span>
+                                        <input type="hidden" data-bind="value: apiKey" id="ApiKey" name="ApiKey" />
+                                        @if (Authorizer.Authorize(Permissions.CanEditDeviceMaint))
+                                        {
+                                            <button id="btnRotateKey" type="button" class="btn btn-sm btn-outline-warning">Rotate Key</button>
+                                        }
+                                    </div>
+                                    <div id="apiKeyWarning" class="alert alert-warning mt-2 mb-0 py-2" style="display:none;">
+                                        <strong>Copy this key now</strong> — it will not be shown again once you leave this page.
+                                        Update your agent's <code>appsettings.json</code> with the new key, then click <strong>Save</strong> to commit.
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                    <div class="row mb-2">
+                        <label class="col-sm-4 col-form-label text-sm-end" for="Description">Device Name</label>
+                        <div class="col-sm-8">
+                            <input data-bind="value: description" class="form-control" id="Description" name="Description" type="text" @disable required minlength="3" />
+                        </div>
+                    </div>
+                    <div class="row mb-2">
+                        <label class="col-sm-4 col-form-label text-sm-end" for="WebUrl">Web Url</label>
+                        <div class="col-sm-8">
+                            <input data-bind="value: webUrl" class="form-control" id="WebUrl" name="WebUrl" type="url" @disable />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-6">
+                    <legend class="mb-3">Notes</legend>
+                    <div class="border rounded p-2" style="min-height: 200px;">
+                        <div class="ms-notes-area" id="notesMD">@Html.Raw(ViewBag.notesMd)</div>
+                    </div>
+                </div>
+            </div>
+        </form>
+
+        <div class="text-end mt-3">
+            <button type="button" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#myModal">Edit Notes</button>
+            <button id="btnSave" class="btn btn-primary" type="button" @disable>Save</button>
+            <a href="@cancelUrl" class="btn btn-secondary">Cancel</a>
+        </div>
+    </div>
+</div>
+<div id="alertSuccess" class="alert alert-success" hidden="hidden"></div>
+<div id="alertFail" class="alert alert-danger" hidden="hidden"></div>
+
+
+<!-- Modal -->
+<div class="modal" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h4 class="modal-title" id="myModalLabel">View Notes</h4>
+            </div>
+            <div class="modal-body">
+                <textarea style='font-family: "Courier New", Courier, monospace;' rows="11" class="form-control" id="notesId" name="NotesId" type="text" @disable></textarea>
+            </div>
+            <div class="modal-footer">
+                <button id="btnClose" type="button" class="btn btn-secondary">Close</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>

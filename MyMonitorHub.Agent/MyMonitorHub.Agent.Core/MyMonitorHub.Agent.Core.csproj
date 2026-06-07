@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows7.0</TargetFramework>
+    <OutputType>Library</OutputType>
+    <AssemblyName>MyMonitorHub.Agent.Core</AssemblyName>
+    <RootNamespace>MyMonitorHub.Agent</RootNamespace>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />    <PackageReference Include="Serilog" Version="*" />
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="10.0.0" />
+    <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="10.0.0" />
+    <PackageReference Include="System.Management" Version="10.0.0" />
+    <PackageReference Include="System.ServiceProcess.ServiceController" Version="10.0.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\MyMonitorHub.Web\MyMonitorHub.Common\MyMonitorHub.Common.csproj" />
+    <ProjectReference Include="..\MyMonitorHub.Agent.Client\MyMonitorHub.Agent.Client.csproj" />
+    <ProjectReference Include="..\MyMonitorHub.Agent.Common\MyMonitorHub.Agent.Common.csproj" />
+  </ItemGroup>
+</Project>

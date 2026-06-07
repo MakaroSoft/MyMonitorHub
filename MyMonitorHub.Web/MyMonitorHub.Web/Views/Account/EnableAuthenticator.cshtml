@@ -1,0 +1,47 @@
+@{
+    ViewBag.Title = "Enable Authenticator";
+}
+<div class="container">
+    <main role="main" class="pb-3">
+        <h1>Enable Authenticator</h1>
+        <hr />
+        @Html.ValidationSummary(true, "", new { @class = "alert alert-danger" })
+        @if (TempData["Message"] != null)
+        {
+            <div class="alert alert-success">@TempData["Message"]</div>
+        }
+
+        <p>Scan this QR code with Microsoft Authenticator (or compatible TOTP app), or enter the key manually.</p>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div>
+                    @if (!string.IsNullOrEmpty(ViewBag.QrCodeDataUri as string))
+                    {
+                        <img alt="QR Code" src="@ViewBag.QrCodeDataUri" width="200" height="200" />
+                    }
+                    else
+                    {
+                        <div class="alert alert-warning">QR code is not available. Please refresh this page to generate a new secret.</div>
+                    }
+                </div>
+                <div class="mt-2">
+                    <strong>Key:</strong>
+                    <code>@ViewBag.Secret</code>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <form method="post" action="@Url.Action("EnableAuthenticator", "Account")">
+                    @Html.AntiForgeryToken()
+                    <div class="form-group">
+                        <label for="code">Verification code</label>
+                        <input class="form-control" id="code" name="code" maxlength="6" autocomplete="one-time-code" />
+                    </div>
+                    <button type="submit" class="btn btn-primary">Verify and enable</button>
+                </form>
+            </div>
+        </div>
+    </main>
+</div>
+
+

@@ -1,0 +1,64 @@
+@model MyMonitorHub.Domain.Models.RegisterModel
+@{
+    ViewBag.Title = "Create Account";
+    ViewBag.SubTitle = "Create Account";
+}
+@section JavaScripts {
+    <script src="~/Scripts/jquery.validate.min.js"></script>
+    <script src="~/Scripts/jquery.validate.unobtrusive.min.js"></script>
+}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-5 col-sm-9 col-11">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <div class="card-title">Create Account</div>
+            </div>
+            <div class="card-body p-4">
+                @using (Html.BeginForm("Register", "Account", FormMethod.Post))
+                {
+                    @Html.AntiForgeryToken()
+                    @Html.ValidationSummary(true, "Registration was unsuccessful. Please correct the errors and try again.", new { @class = "alert alert-danger mb-3" })
+
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <label class="form-label" for="FirstName">First Name</label>
+                            @Html.TextBoxFor(m => m.FirstName, new { @class = "form-control", placeholder = "First name", autofocus = "autofocus" })
+                            @Html.ValidationMessageFor(m => m.FirstName, "", new { @class = "text-danger small" })
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label" for="LastName">Last Name</label>
+                            @Html.TextBoxFor(m => m.LastName, new { @class = "form-control", placeholder = "Last name" })
+                            @Html.ValidationMessageFor(m => m.LastName, "", new { @class = "text-danger small" })
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="Email">Email Address</label>
+                        @Html.TextBoxFor(m => m.Email, new { @class = "form-control", placeholder = "Email address", type = "email" })
+                        @Html.ValidationMessageFor(m => m.Email, "", new { @class = "text-danger small" })
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="Password">Password</label>
+                        @Html.PasswordFor(m => m.Password, new { @class = "form-control", placeholder = "At least 8 characters" })
+                        @Html.ValidationMessageFor(m => m.Password, "", new { @class = "text-danger small" })
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label" for="ConfirmPassword">Confirm Password</label>
+                        @Html.PasswordFor(m => m.ConfirmPassword, new { @class = "form-control", placeholder = "Re-enter your password" })
+                        @Html.ValidationMessageFor(m => m.ConfirmPassword, "", new { @class = "text-danger small" })
+                    </div>
+
+                    <div class="d-grid mb-3">
+                        <button type="submit" class="btn btn-primary">Create Account</button>
+                    </div>
+
+                    <div class="text-center">
+                        <small>Already have an account? @Html.ActionLink("Sign in", "LogOn")</small>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

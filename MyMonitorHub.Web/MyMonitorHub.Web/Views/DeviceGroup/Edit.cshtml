@@ -1,0 +1,511 @@
+@using MyMonitorHub.Domain.Security
+@model MyMonitorHub.Domain.Models.DeviceGroupDetailModel
+@{
+    ViewBag.Title = "Device Group Maintenance";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var disable = "";
+    if (!Authorizer.Authorize(Permissions.CanEditDeviceGroupMaint))
+    {
+        disable = "disabled = 'disabled'";
+    }
+    var cancelUrl = Url.Action("Edit", "DeviceGroup", new {id = ViewContext.RouteData.Values["id"]});
+    var pageId = Context.Request.Query["PageId"].ToString();
+    if (!string.IsNullOrEmpty(pageId))
+    {
+        cancelUrl += "?PageId=" + pageId;
+    }
+    bool isNew = Model.DeviceGroupId == -1;
+}
+
+@section styles {
+    <link href="~/Content/showLoading.css" rel="stylesheet" />
+    <style>
+        #devicesTable td {
+            white-space: nowrap;
+        }
+        .ms-notes-area {
+            padding-top: 10px;
+        }
+        .ms-notes-area td {
+            padding-left: 10px;
+            padding-left: 10px;
+        }
+    </style>
+}
+
+
+@section JavaScripts {
+    <script src="~/Scripts/jquery.showLoading.js"></script>
+    <script src="~/Scripts/jquery.validate.min.js"></script>
+    <script src="~/Scripts/jquery.validate.unobtrusive.min.js"></script>
+    <script src="~/Scripts/knockout-3.5.0.js"></script>
+    <script src="~/Scripts/knockout.mapping-latest.js"></script>
+    <script src="@Url.Content("~/Scripts/MarkdownDeepLib.min.js")" type="text/javascript"></script>
+    <script>
+        var viewModel = ko.mapping.fromJS(@Json.Serialize(Model));
+        $(document).ready(function () {
+            $("#myModalForm").validate(); @* required so that I can use rules add later *@
+            $("#contactDeleteModalForm").validate(); @* required so that I can use rules add later *@
+
+            $.validator.addMethod("customrule", function (value, element, param) {
+                return this.optional(element) || value === param;
+            }, "You must enter {0}");
+
+            ko.applyBindings(viewModel);
+
+            $('#btnSave').click(function () {
+                if ($('#mainForm').valid()) {
+
+                    @* format the data into a json string *@
+                    var data = ko.toJSON(viewModel);
+
+                    $("#mainBody").showLoading();
+
+                    $.ajax({
+                        url: '@Url.Action("Edit", "DeviceGroup")',
+                        type: "POST",
+                        data: data,
+                        contentType: "application/json; charset=utf-8",
+                        cache: false,
+                        success: function (result) {
+                            if (result.status === "Success") {
+                                @if (isNew)
+                                {
+                                    <text>
+                                window.location = "@Url.Action("Edit","DeviceGroup", new {id=""})/" + result.deviceGroupId;
+                                </text>
+                                }
+                                else
+                                {
+                                    <text>
+                                viewModel.title(viewModel.description());
+                                $("#alertFail").hide();
+                                $("#alertSuccess")
+                                    .html(result.response)
+                                    .show();
+                                    </text>
+                                }
+
+                            } else {
+                                $("#alertSuccess").hide();
+                                $("#alertFail")
+                                    .html("Failed. Reason: <strong>" + result.reason + "</strong>")
+                                    .show();
+
+                            }
+                        },
+                        error: function(xhr, ajaxOptions, thrownError) {
+                            $("#alertSuccess").hide();
+                            $("#alertFail")
+                                .html("Failed. Reason: <strong>" + thrownError + "</strong>")
+                                .show();
+                        },
+                        complete: function(data) {
+                            $("#mainBody").hideLoading();
+                        }
+                    });
+                }
+            });
+
+
+            $('#myModal').on('show.bs.modal', function (event) {
+                $(this).find('form')[0].reset();
+            });
+            $('#myModal').on('show.bs.modal', function (event) {
+                var button = $(event.relatedTarget);
+                var deviceId = button.data('deviceid');
+                var index = button.data('index');
+                var description = button.data('description');
+
+                $("#txtConfirm").rules('add', {
+                    required: true,
+                    customrule: description
+                });
+                $("#myModalForm").validate().resetForm();
+                $("#modalAlert").hide();
+                $('#deviceName').text(description);
+
+                $(this).data("deviceid", deviceId);
+                $(this).data("rowindex", index);
+            });
+            $("#btnDelete").click(function () {
+                if ($('#myModalForm').valid()) {
+                    $("#myModalArea").showLoading();
+                    var deviceId = $("#myModal").data("deviceid");
+                    $.ajax({
+                        url: '@Url.Action("Delete", "Device")/' + deviceId,
+                        type: "POST",
+                        contentType: "application/json; charset=utf-8",
+                        cache: false,
+                        success: function (result) {
+                            if (result.status === "Success") {
+                                $("#myModal").modal("hide");
+                                window.location = "@Url.Action("Edit","DeviceGroup", new { id = ViewContext.RouteData.Values["id"] })";
+                                return;
+                            } else {
+                                $("#modalAlertFail")
+                                    .html("Failed. Reason: <strong>" + result.reason + "</strong>")
+                                    .show();
+                                $("#modalAlert").show();
+                            }
+                        },
+                        error: function (xhr, ajaxOptions, thrownError) {
+                            $("#modalAlertFail")
+                                .html("Failed. Reason: <strong>" + thrownError + "</strong>")
+                                .show();
+                            $("#modalAlert").show();
+                        },
+                        complete: function (data) {
+                            $("#myModalArea").hideLoading();
+                        }
+                    });
+
+
+                }
+            });
+
+
+
+
+
+
+
+            $('#contactDeleteModal').on('show.bs.modal', function (event) {
+                $(this).find('form')[0].reset();
+            });
+            $('#contactDeleteModal').on('show.bs.modal', function (event) {
+                var button = $(event.relatedTarget);
+                var contactId = button.data('contactid');
+                var index = button.data('index');
+                var name = button.data('name');
+
+                $("#txtContactConfirm").rules('add', {
+                    required: true,
+                    customrule: name
+                });
+                $("#contactDeleteModalForm").validate().resetForm();
+                $("#modalDeleteAlert").hide();
+                $('#contactName').text(name);
+
+                $(this).data("contactid", contactId);
+                $(this).data("rowindex", index);
+            });
+            $("#btnContactDelete").click(function () {
+                if ($('#contactDeleteModalForm').valid()) {
+                    $("#contactDeleteModalArea").showLoading();
+                    var contactId = $("#contactDeleteModal").data("contactid");
+                    $.ajax({
+                        url: '@Url.Action("Delete", "Contact")/' + contactId,
+                        type: "POST",
+                        contentType: "application/json; charset=utf-8",
+                        cache: false,
+                        success: function (result) {
+                            if (result.status === "Success") {
+                                $("#myModal").modal("hide");
+                                window.location = "@Url.Action("Edit","DeviceGroup", new { id = ViewContext.RouteData.Values["id"] })";
+                                return;
+                            } else {
+                                $("#modalContactAlertFail")
+                                    .html("Failed. Reason: <strong>" + result.reason + "</strong>")
+                                    .show();
+                                $("#modalContactAlert").show();
+                            }
+                        },
+                        error: function (xhr, ajaxOptions, thrownError) {
+                            $("#modalContactAlertFail")
+                                .html("Failed. Reason: <strong>" + thrownError + "</strong>")
+                                .show();
+                            $("#modalContactAlert").show();
+                        },
+                        complete: function (data) {
+                            $("#contactDeleteModalArea").hideLoading();
+                        }
+                    });
+
+
+                }
+            });
+
+
+
+
+
+
+
+
+            $('#notesModal').on('show.bs.modal', function (event) {
+                $('#notesId').val(viewModel.notes());
+            });
+            $("#btnNotesClose").click(function () {
+                var notes = $('#notesId').val();
+
+                var markdown = new MarkdownDeep.Markdown();
+                markdown.ExtraMode = true;
+                markdown.SafeMode = false;
+
+                var notesMd = markdown.Transform(notes);
+                viewModel.notes(notes);
+                $('#notesMD').html(notesMd);
+
+
+                $('#notesModal').modal('hide');
+            });
+
+
+
+
+
+
+
+
+
+
+
+
+
+        });
+    </script>
+}
+
+
+<div class="card">
+    <div class="card-header">
+        <div class="card-title">Device Group Maintenance</div>
+    </div>
+    <div id="mainBody" class="card-body">
+
+
+        <form id="mainForm">
+            <div class="row">
+                <div class="col-lg-6">
+                    <legend class="mb-3">
+                        <a class="underline" data-bind="attr: { href: '@Url.Action("Edit", "Page")/'+pageId() }, text: pageDescription"></a> - <span data-bind="text: title"></span>
+                    </legend>
+
+                    <div class="row mb-2">
+                        <label class="col-sm-4 col-form-label text-sm-end" for="Description">Device Group Name</label>
+                        <div class="col-sm-8">
+                            <input data-bind="value: description" class="form-control" id="Description" name="Description" type="text" @disable required minlength="3" />
+                        </div>
+                    </div>
+                    <div class="row mb-2">
+                        <label class="col-sm-4 col-form-label text-sm-end" for="emailsForClosedSRs">Emails for closed SRs</label>
+                        <div class="col-sm-8">
+                            <input data-bind="value: emailsForClosedSRs" class="form-control" id="emailsForClosedSRs" name="emailsForClosedSRs" type="text" @disable />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-6">
+                    <legend class="mb-3">Notes</legend>
+                    <div class="border rounded p-2" style="min-height: 200px;">
+                        <div class="ms-notes-area" id="notesMD">@Html.Raw(ViewBag.notesMd)</div>
+                    </div>
+                </div>
+            </div>
+        </form>
+
+        <div class="text-end mt-3">
+            <button type="button" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#notesModal">Edit Notes</button>
+            <input id="btnSave" class="btn btn-primary" type="button" value="Save" @disable />
+            <a href="@cancelUrl" class="btn btn-secondary">Cancel</a>
+        </div>
+        </div>
+    </div>
+</div>
+
+<div id="alertSuccess" class="alert alert-success" hidden="hidden"></div>
+<div id="alertFail" class="alert alert-danger" hidden="hidden"></div>
+
+@if (Authorizer.Authorize(Permissions.CanViewDeviceMaint) && Model.DeviceGroupId != -1)
+{
+    <div class="card">
+        <div class="card-header">
+
+
+            @if (Authorizer.Authorize(Permissions.CanEditDeviceMaint))
+            {
+                <a data-bind="attr: { href: '@Url.Action("Edit", "Device", new {id = -1})?deviceGroupId='+deviceGroupId() }" class="float-end ms-icon16 ms-icon16-add"></a>
+            }
+
+
+
+
+            <div class="card-title">Devices</div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table id="devicesTable" class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Device Name</th>
+                            <th>Device Id</th>
+                            <th class="hidden-md d-none d-sm-table-cell d-none d-md-table-cell">Web Url</th>
+                            @if (Authorizer.Authorize(Permissions.CanEditDeviceMaint))
+                            {
+                                <th>Delete</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody data-bind="foreach: devices">
+                        <tr>
+                            <td><a class="underline" data-bind="attr: { href: '@Url.Action("Edit", "Device")/' + deviceId() }, text: description"></a></td>
+                            <td data-bind="text: deviceId"></td>
+                            <td class="hidden-md d-none d-sm-table-cell d-none d-md-table-cell" data-bind="text: webUrl"></td>
+                            @if (Authorizer.Authorize(Permissions.CanEditDeviceMaint))
+                            {
+                                <td>
+                                    <a href="#" data-bind='attr: { "data-description": description, "data-deviceid": deviceId, "data-index": $index }' class="ms-icon16 ms-icon16-fail" data-bs-toggle="modal" data-bs-target="#myModal"></a>
+                                </td>
+                            }
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+
+
+
+
+@if (Authorizer.Authorize(Permissions.CanViewNotes) && Model.DeviceGroupId != -1)
+{
+    <div class="card">
+        <div class="card-header">
+
+
+            @if (Authorizer.Authorize(Permissions.CanEditNotes))
+            {
+                <a data-bind="attr: { href: '@Url.Action("Edit", "Contact", new {id = -1})?deviceGroupId='+deviceGroupId() }" class="float-end ms-icon16 ms-icon16-add"></a>
+            }
+
+
+
+
+            <div class="card-title">Contacts</div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table id="contactsTable" class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Phone1</th>
+                            <th>Phone2</th>
+                            <th>Notes</th>
+                            @if (Authorizer.Authorize(Permissions.CanEditDeviceMaint))
+                            {
+                                <th>Delete</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody data-bind="foreach: contacts">
+                        <tr>
+                            <td><a class="underline" data-bind="attr: { href: '@Url.Action("Edit", "Contact")/' + contactId() }, text: name"></a></td>
+                            <td data-bind="text: phone1"></td>
+                            <td data-bind="text: phone2"></td>
+                            <td data-bind="text: notes"></td>
+                            @if (Authorizer.Authorize(Permissions.CanEditDeviceMaint))
+                            {
+                                <td>
+                                    <a href="#" data-bind='attr: { "data-name": name, "data-contactid": contactId, "data-index": $index }' class="ms-icon16 ms-icon16-fail" data-bs-toggle="modal" data-bs-target="#contactDeleteModal"></a>
+                                </td>
+                            }
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+
+
+
+<!-- Modal -->
+<div class="modal" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog" role="document">
+        <div id="myModalArea" class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h4 class="modal-title" id="myModalLabel">Delete Device <strong><span id="deviceName"></span></strong></h4>
+            </div>
+            <form id="myModalForm">
+                <div class="modal-body">
+                    <p>
+                        Warning, this cannot be undone. Are you sure you want to delete this device?
+                    </p>
+                    <div class="form-group">
+                        <label for="txtConfirm">Type the device name as confirmation</label>
+                        <input id="txtConfirm" name="txtConfirm" class="form-control"/>
+                    </div>
+
+
+
+                </div>
+            </form>
+
+            <div class="modal-footer">
+                <button id="btnDelete" type="button" class="btn btn-primary">Delete</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <div id="modalAlert" style="margin-top: 10px; margin-bottom: -20px; text-align: left;" hidden="hidden">
+                    <div id="modalAlertFail" class="alert alert-danger" hidden="hidden"></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="contactDeleteModal" tabindex="-1" role="dialog" aria-labelledby="contactDeleteModalLabel">
+    <div class="modal-dialog" role="document">
+        <div id="contactDeleteModalArea" class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h4 class="modal-title" id="contactDeleteModalLabel">Delete Contact <strong><span id="contactName"></span></strong></h4>
+            </div>
+            <form id="contactDeleteModalForm">
+                <div class="modal-body">
+                    <p>
+                        Warning, this cannot be undone. Are you sure you want to delete this contact?
+                    </p>
+                    <div class="form-group">
+                        <label for="txtContactConfirm">Type the contact name as confirmation</label>
+                        <input id="txtContactConfirm" name="txtContactConfirm" class="form-control"/>
+                    </div>
+
+
+
+                </div>
+            </form>
+
+            <div class="modal-footer">
+                <button id="btnContactDelete" type="button" class="btn btn-primary">Delete</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <div id="modalContactAlert" style="margin-top: 10px; margin-bottom: -20px; text-align: left;" hidden="hidden">
+                    <div id="modalContactAlertFail" class="alert alert-danger" hidden="hidden"></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal" id="notesModal" tabindex="-1" role="dialog" aria-labelledby="notesModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h4 class="modal-title" id="notesModalLabel">View Notes</h4>
+            </div>
+            <div class="modal-body">
+                <textarea style='font-family: "Courier New", Courier, monospace;' rows="11" class="form-control" id="notesId" name="NotesId" type="text" @disable></textarea>
+            </div>
+            <div class="modal-footer">
+                <button id="btnNotesClose" type="button" class="btn btn-secondary">Close</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>

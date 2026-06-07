@@ -1,0 +1,27 @@
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>New User Registration – Action Required</title>
+</head>
+<body>
+
+    Hello,<br /><br />
+
+    A new user has just verified their email address and completed registration on MyMonitorHub.<br /><br />
+
+    <strong>Name:</strong> @ViewBag.newUserFullName<br />
+    <strong>Email:</strong> @ViewBag.newUserEmail<br /><br />
+
+    This user has been assigned the <strong>NoAccess</strong> role by default. To grant them access to the system,
+    please visit the <strong>Members</strong> area in Administration and update their role.<br /><br />
+
+    <a href="@ViewBag.membersUrl">Go to Administration &rarr; Members</a><br /><br />
+
+    <img alt="" src="@ViewBag.imageUrl" Height="88" />
+
+</body>
+</html>

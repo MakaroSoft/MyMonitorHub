@@ -1,0 +1,81 @@
+@using System.Diagnostics
+@using MyMonitorHub.Domain.Security
+@using MyMonitorHub.Domain.Models
+@using MyMonitorHub.Web.Html
+@using MyMonitorHub.Web;
+
+@model MyMonitorHub.Domain.Models.ItemLayoutView
+<div class="table-responsive">
+    <table class="table table-sm">
+        @{
+            const int breakEvery = 5;
+            var breakupCount = breakEvery;
+        }
+        @foreach (var dg in Model.DeviceGroups)
+        {
+            if (breakupCount == breakEvery)
+            {
+                breakupCount = 0;
+                <tr>
+                    <td></td>
+                    <td></td>
+                    @foreach (var header in Model.Headers)
+                    {
+                        <td style="vertical-align: bottom; background-color: #f3f6f8;">
+                            <span style="display: inline-block; writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap;">@header</span>
+                        </td>
+                    }
+
+                    <td style="width: 100%;">&nbsp;</td>
+                </tr>
+            }
+            else
+            {
+                <tr>
+                    <td colspan="@(Model.Headers.Count + 3)" style="white-space: nowrap;">&nbsp;</td>
+                </tr>
+            }
+            breakupCount++;
+
+            <tr class="table-active fw-bold">
+                <td colspan="@(Model.Headers.Count + 3)" style="white-space: nowrap;">
+                    <a name="@dg.DeviceGroupId"></a>
+                    @dg.Description
+                    @if (Authorizer.Authorize(Permissions.CanViewNotes))
+                    {
+                        <a href="#" style="float:left;padding-right: 10px;"
+                           title="Notes for @dg.Description" class="notes" ajaxdialog="@Url.Action("NotesOnly", "DeviceGroup", new { id = @dg.DeviceGroupId})"><span class="ms-icon16 ms-icon16-notes"></span></a>
+                    }
+                </td>
+            </tr>
+
+            foreach (var device in dg.Devices)
+            {
+                <tr class="deviceRow" data-id="@device.DeviceId">
+                    <td class="indent" style="padding-right: 5px;">
+                        
+                        @switch (device.Status)
+                        {
+                            case ItemLayoutViewStatus.Connected:
+                                <span class="ms-icon16 ms-icon16-connected connectIcon"></span>
+                                break;
+                            default:
+                                <span class="ms-icon16 ms-icon16-disconnected connectIcon"></span>
+                                break;
+                        }
+                    </td>
+                    <td style="white-space: nowrap;">
+                        <a class="underline" href="@Url.Action("Detail","Device",new { id = device.DeviceId})">@device.Description</a>
+                    </td>
+
+                    @foreach (var code in device.Codes)
+                    {
+                        <td>@Html.Raw(code)</td>
+                    }
+                    <td style="width: 100%;">&nbsp;</td>
+                </tr>
+            }
+        }
+    </table>
+
+</div>

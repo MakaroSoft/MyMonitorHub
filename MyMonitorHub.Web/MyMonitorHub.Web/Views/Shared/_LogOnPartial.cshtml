@@ -1,0 +1,11 @@
+﻿@if (User.Identity!.IsAuthenticated)
+{
+    <span class="navbar-text">
+        Welcome <strong><a class="nav-link d-inline" href="@Url.Content("~/MySettings/Profile")">@User.Identity.Name</a></strong>!
+        [ <a class="nav-link d-inline" href="@Url.Content("~/Account/LogOff")">Log Off</a> ]
+    </span>
+}
+else
+{
+    <span class="navbar-text"><a class="nav-link d-inline" href="@Url.Content("~/Account/LogOn")">Log On</a></span>
+}

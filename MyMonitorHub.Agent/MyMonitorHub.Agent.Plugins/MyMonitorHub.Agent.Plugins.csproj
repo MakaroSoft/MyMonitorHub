@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows7.0</TargetFramework>
+    <OutputType>Library</OutputType>
+    <AssemblyName>MyMonitorHub.Agent.Plugins</AssemblyName>
+    <RootNamespace>MyMonitorHub.Agent</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Web.Administration" Version="11.1.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />    <PackageReference Include="Serilog" Version="*" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\MyMonitorHub.Agent.Client\MyMonitorHub.Agent.Client.csproj" />
+    <ProjectReference Include="..\MyMonitorHub.Agent.Core\MyMonitorHub.Agent.Core.csproj" />
+  </ItemGroup>
+</Project>

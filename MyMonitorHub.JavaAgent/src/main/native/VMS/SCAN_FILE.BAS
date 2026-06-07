@@ -1,0 +1,21 @@
+10      FUNCTION STRING SCAN_FILE(STRING FILE$,STRING SEARCH_FOR$)
+
+        ON ERROR GOTO 2000
+        OPEN FILE$ FOR INPUT AS FILE #3%, &
+        ORGANIZATION UNDEFINED, &
+                RECORDTYPE ANY, &
+                ACCESS READ, &
+                ALLOW MODIFY
+
+100     GET #3%
+        MOVE FROM #3%,LINE$ = RECOUNT
+        PRINT ">";LINE$
+
+        GOTO 100
+
+2000    RESUME 32767 IF ERR = 11
+        PRINT ERT$(ERR)
+        PRINT ERR
+        RESUME 32767
+
+32767   FUNCTIONEND

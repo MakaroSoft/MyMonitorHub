@@ -1,0 +1,269 @@
+@model MyMonitorHub.Domain.Dto.SearchView
+@using System.Globalization
+@using MyMonitorHub.Domain.Util
+@{
+    ViewBag.Title = "Alert Ticket Search";
+    ViewBag.currentZonePage = "search";
+}
+
+
+@section Styles {
+
+    <link href="~/Content/showLoading.css" rel="stylesheet" />
+    <link href="~/Content/ms.jquery.ui.paginator.css" rel="stylesheet" />
+
+    <style>
+        .entries > tr {
+            cursor: pointer;
+        }
+        .entries > tr:hover > td {
+            background-color: #e8f4f8 !important;
+        }
+    </style>
+
+}
+
+@section JavaScripts {
+    <script src="~/Scripts/jquery.showLoading.js"></script>
+    <script src="~/Scripts/ms.jquery.ui.pageloader.js"></script>
+    <script src="~/Scripts/ms.jquery.ui.paginator.js"></script>
+
+    <script src="@Url.Content("~/Scripts/jquery-dateFormat.js")" type="text/javascript"></script>
+
+    <script id="tmpl2" type="text/x-jquery-tmpl">
+        <tr id="{{>serviceRequestId}}">
+            <td>{{>serviceRequestId}}</td>
+            <td>{{>timeStamp}}</td>
+            <td>{{>deviceGroupDesc}}</td>
+            <td>{{>deviceDesc}}</td>
+            <td>{{>alert}}</td>
+            <td>{{>notes}}</td>
+        </tr>
+    </script>
+
+    <script type="text/javascript">
+        //$.views.helpers({
+
+        //    format: function (val, format) {
+        //        var value = $.format.date(val, format);
+        //        alert(value);
+
+        //        var d = new Date(val);
+        //        var formatted = d.getFullYear() + "-" + d.getMonth() + "-" + d.getDay();
+        //        return formatted;
+        //        //return $.format.date(new Date(val), format);
+
+        //    },
+        //});
+        
+
+
+        $(document).ready(function () {
+            $("#srList").pageloader({
+                templateBody: "#tmpl2",
+                jsonGetUrl: '@Url.Action("SearchData","ServiceRequest")',
+                loading: "#load-container",
+
+                pager: ".srList-pager",
+                itemsPerPage: 15,
+                pageSizes: new Array(10, 15, 30),
+                searchCriteria: {
+                    Search: function () { return $("#hSearch").val(); },
+                    SrFrom: function () { return $("#htxtSrFrom").val(); },
+                    SrTo: function () { return $("#htxtSrTo").val(); },
+                    DateFrom: function () { return $("#htxtDateFrom").val(); },
+                    DateTo: function () { return $("#htxtDateTo").val(); },
+                    SelectedAccount: function () { return $("#hselAccount").val(); },
+                    SelectedAssignedTo: function () { return $("#hselAssignedTo").val(); },
+                    SelectedDeviceGroup: function () { return $("#hselDeviceGroup").val(); }
+                },
+                postDraw: function () {
+                    $(".entries>tr").click(function() {
+                        var sr = $(this).attr('id');
+                        if (sr && sr != "") {
+                            window.location = "@Url.Action("Detail","ServiceRequest")/" + sr;                            
+                        }
+
+                    });
+                }
+            });
+
+            $("#txtDateFrom").datepicker({
+                defaultDate: "+1w",
+                changeMonth: true,
+                numberOfMonths: 1,
+                onClose: function (selectedDate) {
+                    $("#txtDateTo").datepicker("option", "minDate", selectedDate);
+                }
+            });
+            $("#txtDateTo").datepicker({
+                defaultDate: "+1w",
+                changeMonth: true,
+                numberOfMonths: 1,
+                onClose: function (selectedDate) {
+                    $("#txtDateFrom").datepicker("option", "maxDate", selectedDate);
+                }
+            });
+
+            $('#btnSearch').click(function (event) {
+                $('#hSearch').val('True');
+
+                $('#htxtSrFrom').val($('#txtSrFrom').val());
+                $('#htxtSrTo').val($('#txtSrTo').val());
+
+                $('#htxtDateFrom').val($('#txtDateFrom').val());
+                $('#htxtDateTo').val($('#txtDateTo').val());
+
+                $('#hselAccount').val($('#selAccount').val());
+                $('#hselAssignedTo').val($('#selAssignedTo').val());
+                $('#hselDeviceGroup').val($('#selDeviceGroup').val());
+
+                $("#srList").pageloader('reloadPage', 1);
+            });
+        });
+    </script>
+
+}
+<div class="card">
+    <div class="card-header">
+        <div class="card-title">@ViewBag.Title</div>
+    </div>
+
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+
+                <div class="row mb-3">
+                    <label for="txtSrFrom" class="col-sm-4 col-form-label text-sm-end">Ticket No.</label>
+                    <div class="col-sm-8">
+                        <div class="row g-2">
+                            <div class="col-sm-6">
+                                <input id="txtSrFrom" class="form-control" type="text" placeholder="Start" value="@Model.Criteria.SrFrom" />
+                            </div>
+                            <div class="col-sm-6">
+                                <input id="txtSrTo" class="form-control" type="text" placeholder="End" value="@Model.Criteria.SrTo" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <label for="txtDateFrom" class="col-sm-4 col-form-label text-sm-end">Date Range</label>
+                    <div class="col-sm-8">
+                        <div class="row g-2">
+                            <div class="col-sm-6">
+                                <input id="txtDateFrom" class="form-control" type="text" placeholder="Start Date" value="@(Model.Criteria.DateFrom?.ToShortDateString() ?? "")" />
+                            </div>
+                            <div class="col-sm-6">
+                                <input id="txtDateTo" class="form-control" type="text" placeholder="End Date" value="@(Model.Criteria.DateTo?.ToShortDateString() ?? "")" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                @if (Helper.IsAdministrator)
+                {
+                    <div class="row mb-3">
+                        <label for="selAccount" class="col-sm-4 col-form-label text-sm-end">Account</label>
+                        <div class="col-sm-8">
+                            <select id="selAccount" class="form-select">
+                                <option value="">All</option>
+                                @foreach (var pair in Model.Accounts)
+                                {
+                                    if (pair.Value == Model.Criteria.SelectedAccount.ToString(CultureInfo.InvariantCulture))
+                                    {
+                                        <option value="@pair.Value" selected="selected">@pair.Text</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@pair.Value">@pair.Text</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                    </div>
+                }
+                <div class="row mb-3">
+                    <label for="selAssignedTo" class="col-sm-4 col-form-label text-sm-end">Assigned To</label>
+                    <div class="col-sm-8">
+                        <select id="selAssignedTo" class="form-select">
+                            <option value="">All</option>
+                            @foreach (var pair in Model.AssignedTos)
+                            {
+                                if (pair.Value == Model.Criteria.SelectedAssignedTo.ToString(CultureInfo.InvariantCulture))
+                                {
+                                    <option value="@pair.Value" selected="selected">@pair.Text</option>
+                                }
+                                else
+                                {
+                                    <option value="@pair.Value">@pair.Text</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <label for="selDeviceGroup" class="col-sm-4 col-form-label text-sm-end">Customer</label>
+                    <div class="col-sm-8">
+                        <select id="selDeviceGroup" class="form-select">
+                            <option value="">All</option>
+                            @foreach (var pair in Model.DeviceGroups)
+                            {
+                                if (pair.Value == Model.Criteria.SelectedDeviceGroup.ToString(CultureInfo.InvariantCulture))
+                                {
+                                    <option value="@pair.Value" selected="selected">@pair.Text</option>
+                                }
+                                else
+                                {
+                                    <option value="@pair.Value">@pair.Text</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-end">
+            <button id="btnSearch" class="btn btn-primary">Search</button>
+        </div>
+        @Html.AntiForgeryToken()
+        <input id="hSearch" type="hidden" value="@Model.Criteria.Search" />
+        <input id="htxtSrFrom" type="hidden" value="@Model.Criteria.SrFrom" />
+        <input id="htxtSrTo" type="hidden" value="@Model.Criteria.SrTo" />
+        <input id="htxtDateFrom" type="hidden" value="@(Model.Criteria.DateFrom?.ToShortDateString() ?? "")" />
+        <input id="htxtDateTo" type="hidden" value="@(Model.Criteria.DateTo?.ToShortDateString() ?? "")" />
+        <input id="hselAccount" type="hidden" value="@Model.Criteria.SelectedAccount" />
+        <input id="hselAssignedTo" type="hidden" value="@Model.Criteria.SelectedAssignedTo" />
+        <input id="hselDeviceGroup" type="hidden" value="@Model.Criteria.SelectedDeviceGroup" />
+    </div>
+</div>
+
+<div class="card mt-3">
+    <div class="card-header">
+        <div class="card-title">Results</div>
+    </div>
+    <div class="card-body">
+
+            <div id="load-container" class="table-responsive">
+                <table class="table table-sm table-hover">
+                    <thead>
+                        <tr>
+                            <th>Ticket No.</th>
+                            <th>Time</th>
+                            <th>Customer</th>
+                            <th>Device</th>
+                            <th>Alert</th>
+                            <th style="width: 50%;">Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody id="srList" class="entries"></tbody>
+                </table>
+                <div class="srList-pager"></div>
+            </div>
+        </div>
+</div>
+
+
+

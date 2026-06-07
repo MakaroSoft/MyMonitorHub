@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="WixToolset.Sdk/7.0.0">
+
+  <PropertyGroup>
+    <AcceptEula>wix7</AcceptEula>
+    <OutputName>MyMonitorHub.Agent</OutputName>
+    <Platform>x64</Platform>
+    <InstallerPlatform>x64</InstallerPlatform>
+    <ProductVersion>1.0.0</ProductVersion>
+    <!--
+      Installers are always Release artifacts. Fix the output path so the MSI
+      always lands in bin\x64\Release\ regardless of the -c flag passed to
+      dotnet build (the CLI always passes Configuration=Debug by default, which
+      cannot be overridden from inside the project file).
+    -->
+    <OutputPath>bin\x64\Release\</OutputPath>
+    <!--
+      Both projects publish into this single folder so that shared dependency
+      DLLs land in one place. WiX harvests from here, avoiding duplicate-
+      component errors that would occur if two separate publish dirs each
+      contained Common.dll, Newtonsoft.Json.dll, etc.
+    -->
+    <CombinedPublishDir>$(MSBuildThisFileDirectory)publish\</CombinedPublishDir>
+    <!--
+      WiX v7 <Files> has no Exclude attribute. We copy all published files
+      except the service exe into a separate harvest\ folder. <Files> points
+      here, while the service exe is referenced directly from publish\ in its
+      own explicit Component with ServiceInstall attached.
+    -->
+    <HarvestDir>$(MSBuildThisFileDirectory)harvest\</HarvestDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WixToolset.UI.wixext" Version="7.0.0" />
+  </ItemGroup>
+
+  <!--
+    Expose MSBuild properties as WiX preprocessor variables so that Package.wxs
+    can reference them with $(var.CombinedPublishDir) and $(var.ProductVersion).
+    DefineConstants must be a property (semicolon-separated), not an ItemGroup.
+  -->
+  <PropertyGroup>
+    <DefineConstants>CombinedPublishDir=$(CombinedPublishDir);HarvestDir=$(HarvestDir);ProductVersion=$(ProductVersion)</DefineConstants>
+  </PropertyGroup>
+
+  <!--
+    Inject PublishDependencies into CoreCompile's DependsOnTargets chain.
+    This is the guaranteed hook: WiX cannot run CoreCompile until every target
+    listed in CoreCompileDependsOn has succeeded, so the publish and harvest
+    copy are complete before WiX tries to resolve any file paths.
+    BeforeTargets="CoreCompile" is unreliable for WiX v7 because the SDK also
+    uses BeforeTargets internally and ordering is non-deterministic.
+  -->
+  <PropertyGroup>
+    <CoreCompileDependsOn>PublishDependencies;$(CoreCompileDependsOn)</CoreCompileDependsOn>
+  </PropertyGroup>
+
+  <!--
+    Publish both projects into the combined folder before WiX compiles.
+    Service publishes first; Setup's unique files are added on top.
+    Shared DLLs written by both are identical so overwriting is safe.
+  -->
+  <Target Name="PublishDependencies">
+    <!-- Wipe previous output so stale files never shadow a fresh publish -->
+    <RemoveDir Directories="$(CombinedPublishDir);$(HarvestDir)" />
+    <MakeDir Directories="$(CombinedPublishDir);$(HarvestDir)" />
+
+    <!--
+      Always publish Release builds with the win-x64 RID.
+      The RID is required so that NuGet packages that ship platform-specific
+      assemblies under runtimes/win/lib/ (e.g. System.ServiceProcess.ServiceController)
+      are physically copied into the output folder.  The no-self-contained flag keeps
+      the .NET runtime itself out of the package; the target machine must have .NET installed.
+    -->
+    <Exec Command="dotnet publish &quot;$(MSBuildThisFileDirectory)..\MyMonitorHub.Agent.Service\MyMonitorHub.Agent.Service.csproj&quot; -c Release -r win-x64 --no-self-contained -o &quot;$(CombinedPublishDir)&quot;" />
+    <Exec Command="dotnet publish &quot;$(MSBuildThisFileDirectory)..\MyMonitorHub.Agent.Setup\MyMonitorHub.Agent.Setup.csproj&quot; -c Release -r win-x64 --no-self-contained -o &quot;$(CombinedPublishDir)&quot;" />
+
+    <!--
+      WiX v7 <Files> has no Exclude attribute, so we copy everything except
+      the service exe into a separate harvest\ folder for <Files> to consume.
+      The service exe is referenced directly in its explicit Component so that
+      ServiceInstall can be attached to it.
+    -->
+    <ItemGroup>
+      <FilesToHarvest Include="$(CombinedPublishDir)*"
+                      Exclude="$(CombinedPublishDir)MyMonitorHub.Agent.Service.exe" />
+    </ItemGroup>
+    <Copy SourceFiles="@(FilesToHarvest)" DestinationFolder="$(HarvestDir)" />
+
+    <!-- Stamp the actual product version into the copy of Version.txt that the Setup exe reads at runtime. -->
+    <WriteLinesToFile File="$(HarvestDir)Version.txt" Lines="$(ProductVersion)" Overwrite="true" />
+  </Target>
+
+</Project>

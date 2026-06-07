@@ -1,0 +1,10 @@
+<Project>
+  <PropertyGroup>
+    <!--
+      The entire agent solution is Windows-only. CA1416 (platform compatibility) fires because
+      the windows7.0 TFM version is not a recognised Windows NT version so the analyser cannot
+      confirm that Windows-only APIs are available, even though they always are in this project.
+    -->
+    <NoWarn>$(NoWarn);CA1416</NoWarn>
+  </PropertyGroup>
+</Project>

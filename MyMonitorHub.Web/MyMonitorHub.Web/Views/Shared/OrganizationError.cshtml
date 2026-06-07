@@ -1,0 +1,22 @@
+@model MyMonitorHub.Web.Models.ErrorViewModel
+
+@{
+    ViewBag.Title = "Organization is missing or not yours.";
+}
+
+<div class="ui-widget-header ui-corner-top ms-widget-header" style="margin-top: 10px;">
+<h2>
+    &nbsp;&nbsp;The organization you specified does not exist or is not yours.
+</h2>
+</div>
+<div class="ui-widget-content ui-corner-bottom ms-widget-content">
+    <table class="ms-error-table">
+        @if (Model?.ControllerName != null)
+        {
+            <tr>
+                <td>Controller Name:</td>
+                <td>@Model.ControllerName</td>
+            </tr>
+        }
+    </table>
+</div>

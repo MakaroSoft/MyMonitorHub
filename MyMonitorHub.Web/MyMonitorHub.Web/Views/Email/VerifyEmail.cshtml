@@ -1,0 +1,26 @@
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Verify your MyMonitorHub account</title>
+</head>
+<body>
+
+    Dear @ViewBag.fullName,<br /><br />
+
+    Thank you for registering with MyMonitorHub.<br /><br />
+
+    To complete your registration and verify your email address, please click the link below.<br />
+    This link will expire in <strong>24 hours</strong>.<br /><br />
+
+    <a href="@ViewBag.link">@ViewBag.link</a><br /><br />
+
+    If you did not create this account, you can safely ignore this email.
+
+    <img alt="" src="@ViewBag.imageUrl" Height="88" />
+
+</body>
+</html>

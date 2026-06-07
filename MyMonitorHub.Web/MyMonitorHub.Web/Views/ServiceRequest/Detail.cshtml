@@ -1,0 +1,278 @@
+@using MyMonitorHub.Common.WebApi
+@using MyMonitorHub.Domain.Security
+@using MyMonitorHub.Domain.Util
+@using MyMonitorHub.Domain.Models
+@using MyMonitorHub.Web
+@using MyMonitorHub.Web.Html
+@model SrDetailView
+@{
+    ViewBag.Title = "Alert Detail";
+
+    var connectionIcon = "";
+
+    if (Model.ConnectionStatus == ConnectionStatus.Connected)
+    {
+        connectionIcon = "ms-icon16 ms-icon16-connected";
+    }
+    else
+    {
+        connectionIcon = "ms-icon16 ms-icon16-disconnected";
+    }
+    var scheme = Context.Request.IsHttps ? "wss" : "ws";
+    var location = $"{scheme}://{Context.Request.Host}{Context.Request.PathBase}";
+}
+@section Styles
+{
+    <style>
+        .ms-notes-area td {
+            padding-left: 10px;
+            padding-left: 10px;
+        }
+    </style>
+}
+
+
+@section JavaScripts {
+<script src="~/Scripts/MakaroSoft.WebSocket.js"></script>
+    <script src="~/Scripts/MakaroSoft.BrowserIdentifier.js"></script>
+    <script src="@Url.Content("~/Scripts/jquery.ajaxdialog.js?v=2")" type="text/javascript"></script>
+    <script src="@Url.Content("~/Scripts/jquery.hoverIntent.js")" type="text/javascript"></script>
+    <script src="@Url.Content("~/Scripts/jquery.cluetip.js")" type="text/javascript"></script>
+
+    <script type="text/javascript">
+        var ticket = "@ViewBag.Ticket";
+        var where = "@location";
+        var deviceId = @Model.DeviceId;
+
+        function makeTrueFalse(value) {
+            if (value == "True") {
+                return true;
+            } else {
+                return false;
+            }
+        }
+
+        function success(text, data) {
+            if (data.hasOwnProperty('accept')) {
+                $('#btnAccept').linkButton('enabled', data.accept);
+            }
+            if (data.hasOwnProperty('save')) $('#btnSave').linkButton('enabled', data.save);
+            if (data.hasOwnProperty('close')) $('#btnClose').linkButton('enabled', data.close);
+
+            if (data.hasOwnProperty('status')) $('#status').text(data.status);
+            if (data.hasOwnProperty('assignedTo')) $('#assignedTo').text(data.assignedTo);
+        }
+
+        $(document).ready(function () {
+
+            webSocket = new MakaroSoft.WebSocket(where, ticket);
+            webSocket.onError = function(event) {
+                displayMessage("Error!" + event, "fail");
+            }
+            webSocket.onClosed = function(event) {
+                displayMessage("Closed!", "fail");
+            }
+
+            webSocket.onAgentConnected = function (from) {
+                if (from == deviceId)
+                {
+                    $(".connectIcon").removeClass("ms-icon16-disconnected").addClass("ms-icon16-connected");
+                }
+            }
+            webSocket.onAgentDisconnected = function (from) {
+                if (from == deviceId)
+                {
+                    $(".connectIcon").removeClass("ms-icon16-connected").addClass("ms-icon16-disconnected");
+                }
+            }
+
+            var btnAccept = makeTrueFalse('@ViewBag.btnAccept');
+            var btnSave = makeTrueFalse('@ViewBag.btnSave');
+            var btnClose = makeTrueFalse('@ViewBag.btnClose');
+
+            $('#btnAccept').linkButton({
+                enabled: btnAccept,
+                url: '@Url.Action("Detail", "ServiceRequest")',
+                type: linkButton.Ajax,
+                success: success
+            });
+            $('#btnSave').linkButton({
+                enabled: btnSave,
+                url: '@Url.Action("Detail", "ServiceRequest")',
+                type: linkButton.Ajax,
+                success: success
+            });
+            $('#btnClose').linkButton({
+                enabled: btnClose,
+                url: '@Url.Action("Detail", "ServiceRequest")',
+                type: linkButton.Ajax,
+                success: success
+            });
+            $('a[ajaxdialog]').ajaxdialog();
+            $('a.cluetip').cluetip({ width: 900, showTitle: false, cluetipClass: 'ms', dropShadow: false, ajaxCache: false });
+            $('a.notes').ajaxdialog();
+
+
+
+
+        });
+
+    </script>
+}
+
+<div id="processing" class="modal fade" tabindex="-1" aria-labelledby="processingLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body d-flex align-items-center gap-3 py-3">
+                <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
+                <span id="processingLabel" class="fs-6">Please wait...</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="card">
+    <div class="card-header">
+        <div class="card-title">Alert Ticket</div>
+    </div>
+    <div class="card-body">
+        @using (Html.BeginForm("Detail", "ServiceRequest", FormMethod.Post))
+        {
+            <div class="row mb-3">
+                <label class="col-sm-3 col-form-label text-sm-end fw-bold">Ticket No.</label>
+                <div class="col-sm-9">
+                    <p class="form-control-plaintext mb-0">@Model.ServiceRequestId</p>
+                </div>
+            </div>
+            <div class="row mb-3">
+                @Html.LabelFor(m => m.Status, new { @class = "col-sm-3 col-form-label text-sm-end fw-bold" })
+                <div class="col-sm-9">
+                    <p class="form-control-plaintext mb-0">@Model.Status</p>
+                </div>
+            </div>
+            <div class="row mb-3">
+                @Html.LabelFor(m => m.TimeStamp, new { @class = "col-sm-3 col-form-label text-sm-end fw-bold" })
+                <div class="col-sm-9">
+                    <p class="form-control-plaintext mb-0">@Model.TimeStamp</p>
+                </div>
+            </div>
+            <div class="row mb-3">
+                @Html.LabelFor(m => m.PageName, new { @class = "col-sm-3 col-form-label text-sm-end fw-bold" })
+                <div class="col-sm-9">
+                    <p class="form-control-plaintext mb-0">@Model.PageName</p>
+                </div>
+            </div>
+            <div class="row mb-3">
+                @Html.LabelFor(m => m.DeviceGroupName, new { @class = "col-sm-3 col-form-label text-sm-end fw-bold" })
+                <div class="col-sm-9">
+                    <div class="form-control-plaintext">
+                        @Html.Raw(Model.DeviceGroupNameLink)
+                        @if (Authorizer.Authorize(Permissions.CanViewNotes))
+                        {
+                            <a title="Notes for @Model.DeviceGroupName > @Model.DeviceDesc" href="#" ajaxdialog="@Url.Action("NotesOnly", "DeviceGroup", new { id = @Model.DeviceGroupId, deviceId = @Model.DeviceId})"><span class="ms-icon16 ms-icon16-notes"></span></a>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="row mb-3">
+                @Html.LabelFor(m => m.DeviceDesc, new { @class = "col-sm-3 col-form-label text-sm-end fw-bold" })
+                <div class="col-sm-9">
+                    <div class="form-control-plaintext">
+                        @Html.ActionLink(Model.DeviceDesc, "Detail", "Device", new { id = Model.DeviceId }, new { @class = "underline" })
+                    </div>
+                </div>
+            </div>
+            <div class="row mb-3">
+                @Html.LabelFor(m => m.Notes, new { @class = "col-sm-3 col-form-label text-sm-end fw-bold" })
+                <div class="col-sm-9">
+                    @Html.TextAreaFor(m => m.Notes, new { rows = "4", @class = "form-control" })
+                </div>
+            </div>
+            <div class="row">
+                <div id='processing-result' style="display: none;"></div>
+            </div>
+
+            <div class="text-end">
+                <a id="btnAccept" name="btnSubmit" href="#" class="btn btn-secondary disabled">Accept</a>
+                <a id="btnSave" name="btnSubmit" href="#" class="btn btn-secondary disabled">Save</a>
+                <a id="btnClose" name="btnSubmit" href="#" class="btn btn-secondary disabled">Close</a>
+            </div>
+            <input type="hidden" value="abc" name="btnSubmit" />
+            <input type="hidden" value="@Html.DisplayFor(m => m.ServiceRequestId)" name="id" />
+        }
+    </div>
+</div>
+
+<div class="card mt-3">
+    <div class="card-header" data-bs-toggle="collapse" data-bs-target="#srDetail">
+        <div class="card-title" style="cursor: pointer">
+            Service Request Detail
+        </div>
+    </div>
+    <div id="srDetail" class="card-body collapse show">
+        <div class="table-responsive">
+
+            <table class="table table-sm">
+                @foreach (var h in Model.History)
+                {
+
+                        <tr class="table-active fw-bold">
+                            <td nowrap="nowrap">
+                                @h.Description
+                            </td>
+                            <td>
+                                Time
+                            </td>
+                            <td>
+                                Status
+                            </td>
+                            <td></td>
+                        </tr>
+                    foreach (var i in h.Events)
+                    {
+                        <tr>
+                            <td class="indent" width="15%">
+                                @i.ItemName
+                            </td>
+                            <td width="20%" style="white-space: nowrap;">
+                                @i.ServerReceivedTimeStamp
+                            </td>
+                            <td>
+                                @Html.StatusDescription(i.StatusDescription)
+                            </td>
+                            <td>
+                                @if (i.Status == (int)EventType.Ok)
+                                {
+                                    <span class="ms-icon16 ms-icon16-ok" />
+                                }
+                                @if (i.Status == (int)EventType.Fail)
+                                {
+                                    <span class="ms-icon16 ms-icon16-fail" />
+                                }
+                            </td>
+                        </tr>
+                    }
+                }
+            </table>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+
+
+    <div class="card mt-3">
+        <div class="card-header" data-bs-toggle="collapse" data-bs-target="#srCurrent" style="cursor: pointer">
+            <div class="card-title">Current Device Status</div>
+        </div>
+        <div id="srCurrent" class="card-body collapse show">
+            @await Html.PartialAsync("ItemLayout", (ItemLayoutView)ViewBag.ItemLayoutView)
+        </div>
+    </div>
+
+
+

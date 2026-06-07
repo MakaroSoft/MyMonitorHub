@@ -1,0 +1,91 @@
+@model List<MyMonitorHub.Domain.Models.ServiceRequestView>
+@{
+    ViewBag.Title = "Summary";
+    ViewBag.currentZonePage = "summary";
+}
+
+@section Styles
+{
+    <style>
+        .entries > tr {
+            cursor: pointer;
+        }
+        .entries > tr:hover > td {
+            background-color: #e8f4f8 !important;
+        }
+    </style>
+}
+
+@section JavaScripts {
+
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $(".entries>tr").click(function() {
+                var sr = $(this).attr('id');
+                window.location = "@Url.Action("Detail","ServiceRequest")/"+sr;
+            });
+            $(".span2").datepicker();
+        });
+    </script>
+}
+
+<div class="card">
+    <div class="card-header">
+        <div class="card-title">Open Alert Tickets</div>
+    </div>
+    <div class="card-body">
+
+        <div class="row">
+            <div class="col-md-12">
+
+
+
+                <div class="table-responsive d-md-none">
+                    <table class="table table-hover table-sm">
+                        <tbody class="entries">
+                            @foreach (MyMonitorHub.Domain.Models.ServiceRequestView entry in Model)
+                            {
+                                <tr id="@entry.ServiceRequestId">
+                                    <td>
+                                        <strong>@entry.DeviceGroupDesc @entry.DeviceDesc</strong>
+                                        @if (!string.IsNullOrEmpty(entry.UserName))
+                                        {
+                                            <text>assigned to <strong>@entry.UserName</strong></text>
+                                        }
+                                        <br />@entry.TimeStamp.ToString("dddd MMM d, yyyy 'at' hh:mm tt")
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="table-responsive d-none d-md-block">
+                    <table class="table table-hover table-sm">
+                        <thead>
+                            <tr>
+                                <th>Ticket No.</th>
+                                <th>Time</th>
+                                <th>Device Group</th>
+                                <th>Device</th>
+                                <th>Assigned To</th>
+                            </tr>
+                        </thead>
+                        <tbody class="entries">
+                            @foreach (MyMonitorHub.Domain.Models.ServiceRequestView entry in Model)
+                            {
+                                <tr id="@entry.ServiceRequestId">
+                                    <td>@entry.ServiceRequestId</td>
+                                    <td>@entry.TimeStamp</td>
+                                    <td>@entry.DeviceGroupDesc</td>
+                                    <td>@entry.DeviceDesc</td>
+                                    <td>@entry.UserName</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

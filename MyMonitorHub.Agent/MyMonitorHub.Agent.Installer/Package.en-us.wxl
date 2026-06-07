@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<WixLocalization Culture="en-US" Language="1033"
+                 xmlns="http://wixtoolset.org/schemas/v4/wxl">
+
+  <String Id="DowngradeError" Value="A newer version of MyMonitorHub Agent is already installed. Please uninstall the current version before installing this one." />
+
+</WixLocalization>

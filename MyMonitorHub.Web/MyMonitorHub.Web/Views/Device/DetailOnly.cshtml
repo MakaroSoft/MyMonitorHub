@@ -1,0 +1,65 @@
+@using MyMonitorHub.Common.WebApi
+@using MyMonitorHub.Web.Html
+@model MyMonitorHub.Domain.Models.DeviceLayoutModel
+@{
+    ViewBag.Title = "Device Detail";
+    Layout = null;
+}
+<div class="card border-primary">
+    <div class="card-header">
+        <div class="card-title">@Html.Raw(Model.Description)</div>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-sm">
+                @foreach (var itemGroup in Model.ItemGroups)
+                {
+                    <tr class="table-active fw-bold">
+                        <td nowrap="nowrap">
+                            @Html.Raw(itemGroup.Description)
+                        </td>
+                        <td>
+                            Status
+                        </td>
+                        <td width="20px"></td>
+                        <td>
+                            Age
+                        </td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                    foreach (var i in itemGroup.Items)
+                    {
+                        <tr>
+                            <td class="indent" width="15%">
+                                @i.Description
+                            </td>
+                            <td>
+                                @Html.StatusDescription(i.StatusDescription)
+                            </td>
+                            <td>
+                                @Html.Raw(i.BroadcastImage)
+                            </td>
+                            <td width="20%" style="white-space: nowrap;">
+                                @i.Age
+                            </td>
+                            <td>
+                                @Html.Raw(i.LateImage)
+                            </td>
+                            <td>
+                                @if (i.Status == (int)EventType.Ok)
+                                {
+                                    <span class="ms-icon16 ms-icon16-ok" ></span>
+                                }
+                                @if (i.Status == (int)EventType.Fail)
+                                {
+                                    <span class="ms-icon16 ms-icon16-fail" ></span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                }
+            </table>
+        </div>
+    </div>
+</div>

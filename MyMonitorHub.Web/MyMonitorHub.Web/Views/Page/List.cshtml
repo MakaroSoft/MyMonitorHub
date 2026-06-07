@@ -1,0 +1,159 @@
+@using MyMonitorHub.Domain.Security
+@model MyMonitorHub.Domain.Models.PageMaintModel
+@{
+    ViewBag.Title = "Page List";
+}
+@section styles {
+    <link href="~/Content/showLoading.css" rel="stylesheet" />
+}
+
+
+@section JavaScripts {
+    <script src="~/Scripts/jquery.showLoading.js"></script>
+    <script src="~/Scripts/jquery.validate.min.js"></script>
+    <script src="~/Scripts/jquery.validate.unobtrusive.min.js"></script>
+    <script src="~/Scripts/knockout-3.5.0.js"></script>
+    <script src="~/Scripts/knockout.mapping-latest.js"></script>
+    <script>
+
+        var viewModel = ko.mapping.fromJS(@Json.Serialize(Model));
+        $(document).ready(function () {
+            $("#myModalForm").validate(); @* required so that I can use rules add later *@
+
+            $.validator.addMethod("customrule", function (value, element, param) {
+                return this.optional(element) || value === param;
+            }, "You must enter {0}");
+
+
+            ko.applyBindings(viewModel);
+            $('#myModal').on('show.bs.modal', function (event) {
+                $(this).find('form')[0].reset();
+            });
+
+            $('#myModal').on('show.bs.modal', function (event) {
+                var button = $(event.relatedTarget);
+                var pageId = button.data('pageid');
+                var index = button.data('index');
+                var description = button.data('description');
+
+                $("#txtConfirm").rules('add', {
+                    required: true,
+                    customrule: description
+                });
+                $("#myModalForm").validate().resetForm();
+                $("#modalAlert").hide();
+
+                $('#pageName').text(description);
+
+                $(this).data("pageid", pageId);
+                $(this).data("rowindex", index);
+            });
+
+            $("#btnDelete").click(function () {
+                if ($('#myModalForm').valid()) {
+                    $("#myModalArea").showLoading();
+                    var pageId = $("#myModal").data("pageid");
+
+                    $.ajax({
+                        url: '@Url.Action("Delete", "Page")/' + pageId,
+                        type: "POST",
+                        contentType: "application/json; charset=utf-8",
+                        cache: false,
+                        success: function (result) {
+                            if (result.status === "Success") {
+                                $("#myModal").modal("hide");
+                                window.location = "@Url.Action("List","Page")";
+                                return;
+                            } else {
+                                $("#modalAlertFail")
+                                    .html("Failed. Reason: <strong>" + result.reason + "</strong>")
+                                    .show();
+                                $("#modalAlert").show();
+                            }
+                        },
+                        error: function (xhr, ajaxOptions, thrownError) {
+                            $("#modalAlertFail")
+                                .html("Failed. Reason: <strong>" + thrownError + "</strong>")
+                                .show();
+                            $("#modalAlert").show();
+                        },
+                        complete: function (data) {
+                            $("#myModalArea").hideLoading();
+                        }
+                    });
+
+
+                }
+            });
+        });
+    </script>
+}
+
+<div class="card">
+    <div class="card-header">
+        @if (Authorizer.Authorize(Permissions.CanEditPageMaint))
+        {
+            <a href="@Url.Action("Edit", "Page")" class="float-end ms-icon16 ms-icon16-add"></a>
+        }
+        <div class="card-title">@ViewBag.Title</div>
+    </div>
+    <div class="card-body">
+        <table class="table">
+            <thead>
+            <tr>
+                <th>Page Name</th>
+                @if (Authorizer.Authorize(Permissions.CanEditPageMaint))
+                {
+                    <th>Delete</th>
+                }
+            </tr>
+            </thead>
+            <tbody data-bind="foreach: pages">
+            <tr>
+                <td><a class="underline" data-bind="attr: { href: '@Url.Action("Edit", "Page")/' + pageId() }, text: description"></a></td>
+                @if (Authorizer.Authorize(Permissions.CanEditPageMaint))
+                {
+                    <td>
+                        <a href="#" data-bind='attr: { "data-description": description, "data-pageid": pageId, "data-index": $index }' class="ms-icon16 ms-icon16-fail" data-bs-toggle="modal" data-bs-target="#myModal"></a>
+                    </td>
+                }
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog" role="document">
+        <div id="myModalArea" class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h4 class="modal-title" id="myModalLabel">Delete Page <strong><span id="pageName"></span></strong></h4>
+            </div>
+            <form id="myModalForm">
+                <div class="modal-body">
+                    <p>
+                        Warning, this cannot be undone. Are you sure you want to delete this page?
+                    </p>
+                    <div class="form-group">
+                        <label for="txtConfirm">Type the page name as confirmation</label>
+                        <input id="txtConfirm" name="txtConfirm" class="form-control"/>
+                    </div>
+
+
+
+                </div>
+            </form>
+
+            <div class="modal-footer">
+                <button id="btnDelete" type="button" class="btn btn-primary">Delete</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <div id="modalAlert" style="margin-top: 10px; margin-bottom: -20px; text-align: left;" hidden="hidden">
+                    <div id="modalAlertFail" class="alert alert-danger" hidden="hidden"></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>

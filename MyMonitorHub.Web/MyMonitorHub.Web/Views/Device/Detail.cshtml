@@ -1,0 +1,974 @@
+@using MyMonitorHub.Common.WebApi
+@using MyMonitorHub.Domain.Security
+@using MyMonitorHub.Domain.Service
+@using MyMonitorHub.Web.Html
+@model MyMonitorHub.Domain.Models.DeviceLayoutModel
+@{
+    ViewBag.Title = "Device Detail";
+    var canStopStartServices = Authorizer.Authorize(Permissions.CanStopStartServices);
+
+    var isCpuFilter = Context.Request.Query["filter"] == "CPU";
+}
+@section Styles
+{
+    <link href="~/Content/showLoading.css" rel="stylesheet" />
+<link rel="stylesheet" href="@Url.Content("~/Content/bootstrap-toggle.min.css")" />
+    <style>
+        .treeView, .treeView ul {
+            padding: 0;
+            margin: 0;
+        }
+
+        .treeView li {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .treeView li li {
+            margin-left: 20px;
+        }
+
+        .treeView span {
+            cursor: pointer;
+            display: inline-block;
+        }
+
+        .files th {
+            white-space: nowrap;
+            padding-left: 10px;
+            text-align: left;
+        }
+
+        .files td {
+            white-space: nowrap;
+            padding-left: 10px;
+        }
+
+        .columnLength {
+            text-align: right;
+            padding-right: 10px;
+        }
+        .treeNode {
+            background-color: white;
+        }
+        .treeNodeSelected {
+            background-color: #cce8ff;
+            border: 1px solid #8fd1ff;
+            padding-left: 2px;
+            padding-right: 2px;
+        }
+    </style>
+
+
+    <style>
+        .ms-notes-area td {
+            padding-left: 10px;
+            padding-left: 10px;
+        }
+
+        .ms-hand {
+            cursor: pointer;
+        }
+        #folderPath {
+            margin-bottom: 5px;
+            padding-left: 3px;
+            padding-right: 3px;
+            border: 1px solid gray;
+            height: 20px;
+        }
+
+        /* Card header: make the group hyperlink black instead of the default link blue. */
+        .card-header .card-title a.underline,
+        .card-header .card-title a.underline:hover,
+        .card-header .card-title a.underline:focus,
+        .card-header .card-title a.underline:active {
+            color: #000;
+        }
+
+        /* Card header: make the device-name dropdown look like plain text instead of a button. */
+        .card-header .card-title .device-name-dropdown {
+            color: #000;
+            background: none;
+            border: none;
+            padding: 0;
+            font-weight: inherit;
+            text-decoration: none;
+            box-shadow: none;
+        }
+
+        .card-header .card-title .device-name-dropdown:hover,
+        .card-header .card-title .device-name-dropdown:focus,
+        .card-header .card-title .device-name-dropdown:active {
+            color: #000;
+            background: none;
+            border: none;
+            box-shadow: none;
+            text-decoration: underline;
+        }
+    </style>
+
+
+
+
+
+
+
+
+    <style>
+        .cpu2 {
+            text-align: center;
+            float: left;
+            width: 90px;
+        }
+
+        .cpu {
+            height: 70px;
+            width: 90px;
+        }
+        .cpu2Test {
+            text-align: center;
+            float: left;
+            width: 100%;
+        }
+
+        .cpuTest {
+            height: 400px;
+            width: 100%;
+        }
+    </style>
+<link rel="stylesheet" href="@Url.Content("~/Content/jquery.fileupload.css")" />
+}
+@section JavaScripts {
+
+    <script src="@Url.Content("~/Scripts/jquery.ajaxdialog.js?v=2")" type="text/javascript"></script>
+
+    <script src="~/Scripts/knockout-3.5.0.js"></script>
+    <script src="~/Scripts/jquery.showLoading.js"></script>
+    <script src="~/Scripts/MakaroSoft.WebSocket.js"></script>
+    <script src="~/Scripts/MakaroSoft.BrowserIdentifier.js"></script>
+    <script src="~/Scripts/jsrender.js"></script>
+    <script src="@Url.Content("~/scripts/jquery.flot.js")"></script>
+    <script src="@Url.Content("~/scripts/jquery.flot.time.js")"></script>
+    <script src="@Url.Content("~/scripts/jquery.flot.selection.js")"></script>
+    <script src="@Url.Content("~/Scripts/bootstrap-toggle.min.js")"></script>
+    <script src="@Url.Content("~/Scripts/jquery.popupMenu.js")" type="text/javascript"></script>
+    <script src="@Url.Content("~/scripts/raphael.2.1.0.min.js")"></script>
+    <script src="@Url.Content("~/scripts/justgage.1.0.1.min.js")"></script>
+    <script src="@Url.Content("~/Scripts/jquery-dateFormat.js")" type="text/javascript"></script>
+    
+    <script src="@Url.Content("~/Scripts/jquery.ui.widget.js")" type="text/javascript"></script>
+    <script src="@Url.Content("~/Scripts/jquery.iframe-transport.js")" type="text/javascript"></script>
+    <script src="@Url.Content("~/Scripts/jquery.fileupload.js")" type="text/javascript"></script>
+    <script src="@Url.Content("~/Scripts/jquery.loadTemplate-1.4.4.min.js")" type="text/javascript"></script>
+    <script src="@Url.Content("~/Scripts/Uploader/Makarosoft.Uploader.min.js")" type="text/javascript"></script>
+    <script src="@Url.Content("~/Scripts/jquery.fileDownload.js")" type="text/javascript"></script>
+
+
+    <script id="fileTemplate" type="text/x-jsrender">
+        <tr title="{{>Name}}">
+            <td class="ms-hand">{{>Name}}</td>
+            <td class="columnLength">{{>Length}} KB</td>
+            <td>{{>Modified}}</td>
+        </tr>
+    </script>
+
+    <script id="servicesTemplate" type="text/x-jsrender">
+    <tr>
+        <td style="white-space: nowrap;">{{>Description}}</td>
+        <td>
+            <input id="service_id_{{>Code}}" class="bootstrapToggleHere" @ViewBag.DisableServices type="checkbox" {{if Checked}}checked{{/if}} data-size="small" data-name="{{>Name}}" data-code="{{>Code}}" />
+        </td>
+        <td id="service_td_{{>Code}}">{{>StatusDesc}}</td>
+    </tr>
+</script>
+
+    <script id="folderNodeTemplate" type="text/html">
+        <ul>
+            <li>
+                <span data-bind="attr: {'class': expandedClass}, click: clickedOnExpander"></span>
+                <span data-bind="attr: {'class': selectedClass}, text: name, click: clickedOnName"></span>
+                <!-- ko if: expanded -->
+                <!-- ko template: { name: 'folderNodeTemplate', foreach: folders } -->
+                <!-- /ko -->
+                <!-- /ko -->
+            </li>
+        </ul>
+    </script>
+
+    <script id="tmpl2" type="text/x-jquery-tmpl">
+        <tr id="{{>pid}}">
+            <td>{{>~format(pid,"HEX")}}</td>
+            <td>{{>pname}}</td>
+            <td>{{>cpuPercentage}}%</td>
+        </tr>
+    </script>
+
+    <script id="tmplPS" type="text/x-jquery-tmpl">
+        <tr>
+            <td style="padding-right: 40px;"><strong>{{>name}}</strong></td>
+            <td>{{>value}}</td>
+        </tr>
+    </script>
+
+    <script type="text/javascript">
+        var defaults = {
+            webSocketTicket: "@ViewBag.Ticket",
+            where: "@ViewBag.Location",
+            isVms: @ViewBag.IsVms.ToString().ToLower(),
+            deviceId: @Model.DeviceId,
+            chartUrl: "@Html.Raw(ViewBag.ChartUrl)",
+            canStopStartServices: @canStopStartServices.ToString().ToLower(),
+            isCpuFilter: @isCpuFilter.ToString().ToLower(),
+            webUrl: "@Html.Raw(Model.WebUrl)",
+            webPingUrl: "@Html.Raw(Model.WebPingUrl)",
+            getDayUrl: "@Url.Action("GetDay", "Cpu")",
+            getHourUrl: "@Url.Action("GetHour", "Cpu")"
+        };
+
+        window.addEventListener("dragover", function (e) {
+            e = e || event;
+            e.preventDefault();
+        }, false);
+        window.addEventListener("drop", function (e) {
+            e = e || event;
+            e.preventDefault();
+        }, false);
+    </script>
+
+<script src="@Url.Content("~/scripts/PageScripts/deviceDetail.min.js?v=3")"></script>
+
+    @if (Context.Request.Query["filter"] == "CPU")
+    {
+        <script type="text/javascript">
+            var first2 = true;
+            var myCpus2;
+            var first2Zoom = true;
+            var myCpus2Zoom;
+            
+
+            var pInfo = [];
+            $(document)
+                .ready(function() {
+
+
+                    $("<div id='tooltip'></div>")
+                        .css({
+                            position: "absolute",
+                            display: "none",
+                            border: "1px solid #fdd",
+                            padding: "2px",
+                            "background-color": "#fee",
+                            opacity: 0.80
+                        })
+                        .appendTo("body");
+
+
+                    $("#c2pu")
+                        .bind("plotselected",
+                            function() {
+
+                                //$("#selection").text(ranges.xaxis.from.toFixed(1) + " to " + ranges.xaxis.to.toFixed(1));
+
+                                //$.each(myCpus2.getXAxes(), function(_, axis) {
+                                //    var opts = axis.options;
+                                //    opts.min = ranges.xaxis.from;
+                                //    opts.max = ranges.xaxis.to;
+                                //});
+                                //myCpus2.setupGrid();
+                                //myCpus2.draw();
+                                //myCpus2.clearSelection();
+                            });
+
+                    $("#zoomChart")
+                        .bind("plothover",
+                            function(event, pos, item) {
+
+                                if (item) {
+                                    var x = item.datapoint[0].toFixed(0),
+                                        y = item.datapoint[1].toFixed(0);
+
+                                    var text = pInfo[y][x];
+
+
+                                    $("#tooltip")
+                                        .html(text)
+                                        .css({ top: item.pageY + 5, left: item.pageX + 5 })
+                                        .fadeIn(200);
+                                } else {
+                                    $("#tooltip").hide();
+                                }
+                            });
+
+
+                    $.plot("#c2pu",
+                    [],
+                    {
+                        series: {
+                            shadowSize: 0 // Drawing is faster without shadows
+                        },
+                        yaxis: {
+                            min: 0,
+                            max: 100
+                        },
+                        xaxis: {
+                            show: false
+                        }
+                    });
+                    $.plot("#zoomChart",
+                    [],
+                    {
+                        series: {
+                            shadowSize: 0 // Drawing is faster without shadows
+                        },
+                        yaxis: {
+                            min: 0,
+                            max: 100
+                        },
+                        xaxis: {
+                            show: false
+                        }
+                    });
+                    $('#btnZoom')
+                        .click(function(event) {
+                            event.preventDefault();
+                            drawCpuChartZoomRequest();
+                            myCpus2.clearSelection();
+                        });
+                });
+
+            function drawCpuChartRequest() {
+                var itemId = $('#ddlName').val();
+
+                var chartUrl = getDayUrl + "/" + itemId + "?date=" + $("#txtDate").val();
+                $('#c2pu').showLoading();
+
+                $.ajax({
+                    cache: false,
+                    type: "POST",
+                    url: chartUrl,
+                    dataType: 'json',
+                    accept: 'application/json',
+
+                    error: function(xhr, ajaxOptions, thrownError) {
+                        $('#c2pu').hideLoading();
+                        displayMessage("error", "fail");
+                        var message = xhr.status + " - " + thrownError;
+                        $("#processing-result")
+                            .text(message)
+                            .removeClass('')
+                            .addClass('alert')
+                            .addClass('alert-warning')
+                            .show();
+                    },
+                    success: function(data) {
+                        if (data.Status === "Fail") {
+                            $('#c2pu').hideLoading();
+                            displayMessage(data.Reason, "fail");
+                            return;
+                        }
+                        drawCpuChart(data.Response);
+                    }
+                });
+            }
+
+            function drawCpuChart(entry) {
+
+                var cpus = entry.cpus.length;
+
+                var i = 0;
+                var dta = [];
+                for (i; i < cpus; i++) {
+                    var mydata = entry.cpus[i].Ticks;
+                    var res = [];
+                    var value = 1390780800000;
+                    for (var ii = 0; ii < mydata.length; ii++) {
+                        res.push([value + ii, mydata[ii]]);
+                        value = value + 5000;
+                    }
+
+                    dta[i] = { data: res, label: "cpu" + i };
+
+                }
+                //if (first2) {
+                myCpus2 = $.plot("#c2pu",
+                    dta,
+                    {
+                        series: {
+                            shadowSize: 0, // Drawing is faster without shadows
+                            lines: {
+                                show: true
+                            },
+                            points: {
+                                show: false
+                            }
+                        },
+                        grid: {
+                            hoverable: false,
+                            clickable: false
+                        },
+                        yaxis: {
+                            min: 0,
+                            max: 100
+                        },
+                        xaxis: {
+                            mode: "time",
+                            timeformat: "%I:%M %p", // HH:MM am/pm
+                            tickSize: [1, "hour"], // tick every hour
+                            twelveHourClock: true,
+                            min: 1390780800000, // start of today
+                            max: 1390863600000 + 3600000 // end of today
+                        },
+                        selection: {
+                            mode: "x"
+                        }
+                    });
+
+
+                //} else
+                //{
+                //    myCpus2.setData(dta);
+                //}
+                myCpus2.draw();
+                $('#c2pu').hideLoading();
+
+                first2 = false;
+            }
+
+            function drawCpuChartZoomRequest() {
+                var itemId = $('#ddlName').val();
+                var date = $('#txtDate').val();
+                var time = $('#ddlTime').val();
+
+                var chartUrl = getHourUrl + "/" + itemId + "?date=" + date + "&hour=" + time;
+                $('#zoomChart').showLoading();
+
+                $.ajax({
+                    cache: false,
+                    type: "POST",
+                    url: chartUrl,
+                    dataType: 'json',
+                    accept: 'application/json',
+
+                    error: function(xhr, ajaxOptions, thrownError) {
+                        $('#zoomChart').hideLoading();
+                        displayMessage("error", "fail");
+                        var message = xhr.status + " - " + thrownError;
+                        $("#processing-result")
+                            .text(message)
+                            .removeClass('')
+                            .addClass('alert')
+                            .addClass('alert-warning')
+                            .show();
+                    },
+                    success: function(data) {
+                        if (data.Status === "Fail") {
+                            $('#zoomChart').hideLoading();
+                            displayMessage(data.Reason, "fail");
+                            return;
+                        }
+                        drawCpuZoomChart(data.Response);
+                    }
+                });
+            }
+
+            function drawCpuZoomChart(entry) {
+
+                var cpus = entry.cpus.length;
+
+                var i;
+                var dta = [];
+                for (i = 0; i < cpus; i++) {
+
+                    var mydata = entry.cpus[i].Ticks;
+                    var res = [];
+                    //var value = 1390780800000;
+                    for (var ii = 0; ii < mydata.length; ii++) {
+                        res.push([ii, mydata[ii]]);
+                        //value = value + 5000;
+                    }
+
+                    dta[i] = { data: res, label: "cpu" + i, lines: { show: true }, clickable: false, hoverable: false };
+
+                }
+                var processSeries = i;
+
+
+                pInfo = [];
+                for (i = 0; i < 100; i++) {
+                    pInfo[i] = [];
+                }
+
+
+                var processInfo = [];
+                for (i = 0; i < entry.Processes.length; i++) {
+                    var p = entry.Processes[i];
+                    processInfo.push([p.X, p.Y]);
+                    pInfo[p.Y][p.X] = p.Name;
+                }
+
+                dta[processSeries] = {
+                    data: processInfo,
+                    points: {
+                        show: true
+                    }
+                };
+
+
+                if (first2Zoom) {
+                    myCpus2Zoom = $.plot("#zoomChart",
+                        dta,
+                        {
+                            series: {
+                                shadowSize: 0
+                            },
+                            grid: {
+                                hoverable: true,
+                                clickable: true,
+                                autoHighlight: true
+                            },
+                            yaxis: {
+                                min: 0,
+                                max: 100
+                            },
+                            xaxis: {
+                                //mode: "time",
+                                //timeformat: "%I:%M %p", // HH:MM am/pm
+                                //tickSize: [1, "hour"], // tick every hour
+                                //twelveHourClock: true,
+                                //min: 1390780800000, // start of today
+                                //max: 1390863600000 + 3600000 // end of today
+                            
+                            }
+                        });
+                } else {
+                    myCpus2Zoom.setData(dta);
+                }
+                myCpus2Zoom.draw();
+                $('#zoomChart').hideLoading();
+
+                first2Zoom = false;
+            }
+
+        </script>
+    }
+
+
+}
+    <div class="card">
+    <div class="card-header">
+        <div class="card-title d-flex align-items-center flex-wrap gap-2">
+            <span class="@ViewBag.ConnectionIcon"></span>
+            <span style="white-space: nowrap;">
+                @Html.Raw(Model.GroupDescriptionHtml) &gt;
+                @if (Model.OtherDevices.Any())
+                {
+                    <div class="dropdown d-inline-block">
+                        <a class="dropdown-toggle device-name-dropdown" href="@Url.Action("Detail", "Device", new {id = Model.DeviceId})" role="button" data-bs-toggle="dropdown" aria-expanded="false">@Model.DeviceName</a>
+                        <ul class="dropdown-menu">
+                            @foreach (var otherDevice in Model.OtherDevices)
+                            {
+                                <li><a class="dropdown-item" href="@Url.Action("Detail", "Device", new {id = otherDevice.Key})">@otherDevice.Value</a></li>
+                            }
+                        </ul>
+                    </div>
+                }
+                else
+                {
+                    <span>@Model.DeviceName</span>
+                }
+                @{var activeFilter = Context.Request.Query["filter"].ToString();}
+                @if (!string.IsNullOrEmpty(activeFilter))
+                {
+                    <span> &gt; @activeFilter</span>
+                }
+            </span>
+            @if (Authorizer.Authorize(Permissions.CanViewNotes))
+            {
+                <a title="Notes for @Model.DeviceGroupName" href="#" ajaxdialog="@Url.Action("NotesOnly", "DeviceGroup", new {id = Model.DeviceGroupId, deviceId = Model.DeviceId})"><span class="ms-icon16 ms-icon16-notes"></span></a>
+            }
+
+            @if (Authorizer.Authorize(Permissions.CanViewDeviceMaint))
+            {
+                <a class="btn btn-secondary btn-sm ms-auto" href="@Url.Action("Edit","Device", new {id = Model.DeviceId})">Edit</a>
+            }
+        </div>
+    </div>
+    <div class="card-body">
+
+
+    @if (string.IsNullOrEmpty(Context.Request.Query["filter"]))
+    {
+
+        <div class="card mb-3">
+        <div class="card-body">
+
+
+
+        <div role="tabpanel">
+
+        <!-- Nav tabs -->
+        <ul id="myTab" class="nav nav-tabs" role="tablist">
+            <li class="nav-item" role="presentation"><a class="nav-link active" id="sysInfTab" href="#systemInformation" aria-controls="systemInformation" role="tab" data-bs-toggle="tab">System Information</a></li>
+            <li class="nav-item" role="presentation"><a class="nav-link" id="cpuTab" href="#CPU" aria-controls="CPU" role="tab" data-bs-toggle="tab">CPU</a></li>
+            <li class="nav-item" role="presentation"><a class="nav-link" id="servicesTab" href="#services" aria-controls="services" role="tab" data-bs-toggle="tab">Services</a></li>
+        </ul>
+
+        <!-- Tab panes -->
+        <div id="tabsPane" class="tab-content">
+        <div role="tabpanel" class="tab-pane show active" id="systemInformation">
+
+            <div id="infoPanel" class="card-body">
+
+                <table class="table table-sm">
+                    <tr>
+                        <td><strong>Computer Type</strong></td>
+                        <td id="computerType"></td>
+                    </tr>
+                    <tr>
+                        <td><strong>OS Version</strong></td>
+                        <td id="osVersion"></td>
+                    </tr>
+                    <tr>
+                        <td><strong>CPUs</strong></td>
+                        <td id="cpuCount"></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Uptime</strong></td>
+                        <td id="uptime"></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Monitor Version</strong></td>
+                        <td id="monitorVersion"></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Temperature</strong></td>
+                        <td id="temperature"></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Power Supplies</strong></td>
+                        <td id="ps">
+                            <table>
+                                <tbody id="psBody"></tbody>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>Fans</strong></td>
+                        <td id="fans">
+                            <table>
+                                <tbody id="fansBody"></tbody>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+
+
+
+
+
+
+            </div>
+
+
+        </div>
+        <div role="tabpanel" class="tab-pane" id="CPU">
+
+
+
+            <div id="cpuPanel" class="card-body">
+                <div class="row">
+
+                    <div class="col-5">
+                        <span>&nbsp;</span>
+                    </div>
+
+                    <div class="col-5">
+                        <div class="float-end">
+
+                            Top
+                            <select id="topTake">
+                                <option value="5">5</option>
+                                <option value="10" selected="selected">10</option>
+                                <option value="15">15</option>
+                                <option value="20">20</option>
+                                <option value="25">25</option>
+                            </select>
+
+                        </div>
+                    </div>
+
+
+
+                    <div class="col-2">
+                        <div class="float-end">
+                            <span id="cpuRefresh" class="bi bi-arrow-repeat" style="cursor: pointer;"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div id="cpus" class="col-12">
+                    </div>
+                </div>
+
+                <table id="cpuTable" class="table table-sm">
+                    <thead>
+                    <tr>
+                        <th>Pid</th>
+                        <th>Process Name</th>
+                        <th>CPU</th>
+                    </tr>
+                    </thead>
+                    <tbody id="myTableBody"></tbody>
+                    <tfoot>
+                    <tr>
+                        <th id="footerCpu" colspan="3"></th>
+                    </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+
+        </div>
+
+
+
+
+
+
+        <div role="tabpanel" class="tab-pane" id="services">
+            <div class="card-body">
+                <div class="row">
+
+                    <div class="col-10">
+                        <span>&nbsp;</span>
+                    </div>
+
+                    <div class="col-2">
+                        <div class="float-end">
+                            <span id="servicesRefresh" class="bi bi-arrow-repeat" style="cursor: pointer;"></span>
+                        </div>
+                    </div>
+                </div>
+                <table class="table">
+                    <thead>
+                    <tr>
+                        <th width="5px;">Service</th>
+                        <th width="5px;"></th>
+                        <th width="100%">Status</th>
+                    </tr>
+                    </thead>
+                    <tbody id="myServicesBody">
+                    </tbody>
+                </table>
+
+            </div>
+        </div>
+        </div>
+
+        </div>
+
+
+        </div>
+        </div>
+
+
+
+        <div class="row">
+            <div class="col-md-6">
+            </div>
+
+            <div class="col-md-6">
+            </div>
+        </div>
+
+
+
+    }
+
+
+
+
+
+
+
+    <div class="table-responsive">
+        <table class="table table-sm">
+            @foreach (var itemGroup in Model.ItemGroups)
+            {
+                <tr class="table-active fw-bold">
+                    <td nowrap="nowrap">
+                        @Html.Raw(itemGroup.Description)
+                    </td>
+                    <td class="d-none d-sm-table-cell">
+                        Status
+                    </td>
+                    <td class="d-none d-sm-table-cell d-none d-md-table-cell" width="20px"></td>
+                    <td class="d-none d-sm-table-cell d-none d-md-table-cell">
+                        Age
+                    </td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                foreach (var i in itemGroup.Items)
+                {
+                    <tr>
+                        <td class="indent" width="15%">
+                            @i.Description
+                        </td>
+                        <td class="d-none d-sm-table-cell">
+                            @Html.StatusDescription(i.StatusDescription)
+                        </td>
+                        <td class="d-none d-sm-table-cell d-none d-md-table-cell">
+                            @Html.Raw(i.BroadcastImage)
+                        </td>
+                        <td class="d-none d-sm-table-cell d-none d-md-table-cell" width="20%" style="white-space: nowrap;">
+                            @i.Age
+                        </td>
+                        <td>
+                            @Html.Raw(i.LateImage)
+                        </td>
+                        <td style="width: 1%; padding-right: 10px;">
+                            @if (i.Status == (int) EventType.Ok)
+                            {
+                                <span class="ms-icon16 ms-icon16-ok"></span>
+                            }
+                            @if (i.Status == (int) EventType.Fail)
+                            {
+                                <span class="ms-icon16 ms-icon16-fail"></span>
+                            }
+                        </td>
+                    </tr>
+                }
+            }
+        </table>
+    </div>
+
+    </div>
+    </div>
+
+
+    @if (Context.Request.Query["filter"] == "Disk" || Context.Request.Query["filter"] == "HttpVortex" || Context.Request.Query["filter"] == "CPU")
+    {
+        <div class="card mt-4">
+            <div class="card-header">
+                <div class="card-title">@ViewBag.ReportName Report</div>
+            </div>
+            <div class="card-body">
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                    @ViewBag.Label
+                    <select id="ddlName" class="form-select form-select-sm" style="width: auto;">
+                        @foreach (var catName in ViewBag.Category)
+                        {
+                            <option value="@catName.Value">@catName.Text</option>
+                        }
+                    </select>
+                    <span>Date:</span>
+                    <input type="text" id="txtDate" class="form-control form-control-sm" style="width: auto;" placeholder="now"/>
+                    <span>Period:</span>
+                    <select class="form-select form-select-sm" id="ddlType" style="width: auto;">
+                        <option value="day">Day</option>
+                        <option value="week">Week</option>
+                        <option value="month">Month</option>
+                    </select>
+                    <button type="button" class="btn btn-primary btn-sm" id="btnReport">Report</button>
+                </div>
+                <br/>
+                @if (Context.Request.Query["filter"] == "CPU")
+                {
+                    <div class='cpu2Test'>Day goes here<div id='c2pu' class='cpuTest'></div></div>                        
+                }
+                else
+                {
+                    <div class="col-sm-12">
+                        <img id="imgChart" style="display: none;" src="#"/>
+                    </div>
+                }
+                <div class="row">
+                    <div class="col-sm-6">
+                        <span id="btnLeft" style="display: none; cursor: pointer; margin-left: 290px;" class="bi bi-arrow-left"></span>
+                        <span id="btnRight" style="display: none; cursor: pointer; margin-left: 20px;" class="bi bi-arrow-right"></span>
+                    </div>
+                </div>
+
+                <br/>
+
+
+@if (Context.Request.Query["filter"] == "CPU")
+{
+    <div class="row">
+        <div class="col-md-12">
+
+            <div class="form-inline">
+                Hour: <select class="form-control" id="ddlTime" style="margin-left: 5px; margin-right: 5px;">
+                          <option value="0">12:00 am</option>
+                          <option value="1">1:00 am</option>
+                          <option value="2">2:00 am</option>
+                          <option value="3">3:00 am</option>
+                          <option value="4">4:00 am</option>
+                          <option value="5">5:00 am</option>
+                          <option value="6">6:00 am</option>
+                          <option value="7">7:00 am</option>
+                          <option value="8">8:00 am</option>
+                          <option value="9">9:00 am</option>
+                          <option value="10">10:00 am</option>
+                          <option value="11">11:00 am</option>
+                          <option value="12">12:00 pm</option>
+                          <option value="13">1:00 pm</option>
+                          <option value="14">2:00 pm</option>
+                          <option value="15">3:00 pm</option>
+                          <option value="16">4:00 pm</option>
+                          <option value="17">5:00 pm</option>
+                          <option value="18">6:00 pm</option>
+                          <option value="19">7:00 pm</option>
+                          <option value="20">8:00 pm</option>
+                          <option value="21">9:00 pm</option>
+                          <option value="22">10:00 pm</option>
+                          <option value="23">11:00 pm</option>
+                </select>
+                <button type="button" class="btn btn-primary" id="btnZoom">Zoom</button>
+            </div>
+        </div>
+    </div>
+    <br/>
+
+        <div class='cpu2Test'>zoom here<div id='zoomChart' class='cpuTest'></div></div>
+
+}
+
+
+
+
+
+
+
+
+
+            </div>
+        </div>
+    }
+
+<div id="uploader"></div>
+<div class="ms-downloadModal modal fade" role="dialog">
+    <div class="modal-dialog">
+
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h4 class="modal-title">File Download</h4>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-lg-12">
+                        Download file <span id="downloadMessage"></span>?
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="doDownload" type="button" class="btn btn-secondary" data-bs-dismiss="modal">Download</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>

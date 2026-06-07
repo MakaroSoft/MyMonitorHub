@@ -1,0 +1,31 @@
+@{
+    ViewBag.Title = "Organization Profile";
+
+    var location = "location.href='" + Url.Action("Profile") + "'";
+    Layout = "~/Views/Shared/_Settings.cshtml";
+
+}
+@section JavaScripts {
+    <script src="~/Scripts/jquery.validate.min.js"></script>
+    <script src="~/Scripts/jquery.validate.unobtrusive.min.js"></script>
+    <script src="~/Scripts/jquery.Jcrop.min.js"></script>
+    <script src="~/Scripts/jquery.showLoading.js"></script>
+    <script src="~/Scripts/dropzone/dropzone.min.js"></script>
+
+    <script>
+
+        $(document).ready(function() {
+
+            var something = "#@(ViewBag.Organization)Section";
+            var somethingElse = "orgProfile";
+
+            doOpen(something, somethingElse);
+
+        });
+
+    </script>
+}
+
+
+<h2>@ViewBag.Title</h2>
+

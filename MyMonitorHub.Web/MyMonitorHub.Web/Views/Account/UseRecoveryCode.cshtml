@@ -1,0 +1,40 @@
+@{
+    ViewBag.Title = "Use a Recovery Code";
+}
+
+<div class="container">
+    <main role="main" class="pb-3">
+        <h1>Use a Recovery Code</h1>
+        <hr />
+        <p>Enter one of the recovery codes you saved when you set up your authenticator app. Each code can only be used once.</p>
+        <div class="row">
+            <div class="col-md-4">
+                @using (Html.BeginForm("UseRecoveryCode", "Account", FormMethod.Post))
+                {
+                    @Html.AntiForgeryToken()
+                    @Html.ValidationSummary(true, "", new { @class = "alert alert-danger" })
+                    <div class="mb-3">
+                        <label class="form-label" for="recoveryCode">Recovery code</label>
+                        <input class="form-control"
+                               autofocus="autofocus"
+                               autocomplete="off"
+                               type="text"
+                               id="recoveryCode"
+                               name="recoveryCode"
+                               placeholder="XXXX-XXXX"
+                               maxlength="9" />
+                        <span class="text-danger field-validation-valid"
+                              data-valmsg-for="recoveryCode"
+                              data-valmsg-replace="true"></span>
+                    </div>
+                    <div class="d-grid mb-3">
+                        <button type="submit" class="btn btn-primary">Sign in</button>
+                    </div>
+                }
+                <p class="mt-2">
+                    <a href="@Url.Action("Get2Fa", "Account")">&larr; Use authenticator app instead</a>
+                </p>
+            </div>
+        </div>
+    </main>
+</div>

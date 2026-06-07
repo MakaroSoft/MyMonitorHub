@@ -1,0 +1,146 @@
+@using MyMonitorHub.Domain.Security
+@using MyMonitorHub.Domain.Util
+@model MyMonitorHub.Domain.Service.AlertMaintenanceModel
+
+@{
+    ViewBag.Title = "Alert Maintenance";
+}
+@section Styles {
+}
+
+@section JavaScripts {
+    <script src="~/Scripts/jquery.showLoading.js"></script>
+    <script src="~/Scripts/jquery.validate.min.js"></script>
+    <script src="~/Scripts/jquery.validate.unobtrusive.min.js"></script>
+    <script src="~/Scripts/knockout-3.5.0.js"></script>
+    <script src="~/Scripts/knockout.mapping-latest.js"></script>
+    <script>
+        var viewModel = ko.mapping.fromJS(@Json.Serialize(Model));
+        $(document).ready(function() {
+            ko.bindingHandlers.YesNo = {
+                update: function(element, valueAccessor) {
+                    // defaults to false
+                    var val = ko.utils.unwrapObservable(valueAccessor()) || false;
+
+                    if (val)
+                        $(element).text("Yes");
+                    else
+                        $(element).text("");
+                }
+            };
+            $('#myModal').on('show.bs.modal',
+                function(event) {
+                    $(this).find('form')[0].reset();
+                });
+            $('#myModal').on('show.bs.modal',
+                function(event) {
+                    var button = $(event.relatedTarget);
+                    var emailNotificationId = button.data('emailnotificationid');
+                    var index = button.data('index');
+                    var description = button.data('description');
+
+                    $("#myModalForm").validate().resetForm();
+                    $('#emailName').text(description);
+
+                    $(this).data("emailnotificationid", emailNotificationId);
+                    $(this).data("rowindex", index);
+                });
+            $("#btnDelete").click(function () {
+                if ($('#myModalForm').valid()) {
+                    $("#myModalArea").showLoading();
+                    var emailNotificationId = $("#myModal").data("emailnotificationid");
+
+                    $.ajax({
+                        url: '@Url.Action("Delete", "EmailNotification")/' + emailNotificationId,
+                        type: "POST",
+                        contentType: "application/json; charset=utf-8",
+                        cache: false,
+                        success: function(result) {
+                            if (result.status === "Success") {
+                                window.location = "@Url.Action("AlertMaintenance", "Settings")";
+                                return;
+                            } else {
+                                displayMessage("Failed. Reason: <strong>" + result.reason + "</strong>", "fail");
+                            }
+                        },
+                        error: function(xhr, ajaxOptions, thrownError) {
+                            displayMessage("Failed. Reason: <strong>" + thrownError + "</strong>", "fail");
+                        },
+                        complete: function(data) {
+                            $("#myModalArea").hideLoading();
+                            $("#myModal").modal("hide");
+                        }
+                    });
+                }
+            });
+
+            ko.applyBindings(viewModel);
+        });
+    </script>
+
+}
+<h4 style="margin: 0 0 20px 20px;">Notifications for: @Model.Email</h4>
+
+    <div class="card">
+        <div class="card-header">
+
+
+            <a data-bind="attr: { href: '@Url.Action("Edit", "EmailNotification", new {id = -1, userId = Model.UserId})' }" class="float-end ms-icon16 ms-icon16-add"></a>
+
+
+
+
+            <div class="card-title">Email Notifications</div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table id="emailTable" class="table table-sm">
+                    <thead>
+                    <tr>
+                        <th>Id</th>
+                        <th>Send Alerts To</th>
+                        <th>Disabled</th>
+                        <th>Delete</th>
+                    </tr>
+                    </thead>
+                    <tbody data-bind="foreach: emails">
+                    <tr>
+                        <td><a class="underline" data-bind="attr: { href: '@Url.Action("Edit", "EmailNotification")/' + emailNotificationId() }, text: emailNotificationId"></a></td>
+                        <td data-bind="text: email"></td>
+                        <td data-bind="YesNo: disabled"></td>
+                        <td>
+                            <a href="#" data-bind='attr: { "data-description": email, "data-emailnotificationid": emailNotificationId, "data-index": $index }' class="ms-icon16 ms-icon16-fail" data-bs-toggle="modal" data-bs-target="#myModal"></a>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+        <div class="modal-dialog" role="document">
+            <div id="myModalArea" class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h4 class="modal-title" id="myModalLabel">Delete Email <strong><span id="emailName"></span></strong></h4>
+                </div>
+                <form id="myModalForm">
+                    <div class="modal-body">
+                        <p>
+                            Are you sure you want to delete this email?
+                        </p>
+
+
+                    </div>
+                </form>
+
+                <div class="modal-footer">
+                    <button id="btnDelete" type="button" class="btn btn-primary">Delete</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                </div>
+
+            </div>
+        </div>
+    </div>

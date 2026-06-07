@@ -1,0 +1,79 @@
+@using MyMonitorHub.Domain.Security
+@model MyMonitorHub.Domain.Models.ItemLayoutView
+@{
+    var scheme = Context.Request.IsHttps ? "wss" : "ws";
+    var location = $"{scheme}://{Context.Request.Host}{Context.Request.PathBase}";
+}
+
+@section Styles
+{
+    <style>
+        .ms-notes-area td {
+            padding-left: 10px;
+            padding-left: 10px;
+        }
+    </style>
+}
+
+@section JavaScripts {
+
+    <script src="~/Scripts/MakaroSoft.WebSocket.js"></script>
+    <script src="~/Scripts/MakaroSoft.BrowserIdentifier.js"></script>
+
+    <script src="@Url.Content("~/Scripts/jquery.hoverIntent.js")" type="text/javascript"></script>
+    <script src="@Url.Content("~/Scripts/jquery.cluetip.js")" type="text/javascript"></script>
+    <script src="@Url.Content("~/Scripts/jquery.ajaxdialog.js?v=2")" type="text/javascript"></script>
+    <script src="@Url.Content("~/Scripts/MarkdownDeepLib.min.js")" type="text/javascript"></script>
+
+
+    <script type="text/javascript">
+        var ticket = "@ViewBag.Ticket";
+        var where = "@location";
+
+        $(document).ready(function () {
+
+            $('a.notes').ajaxdialog();
+            $('a.cluetip').cluetip({ width: 900, showTitle: false, cluetipClass: 'ms', dropShadow: false, ajaxCache: false });
+
+            webSocket = new MakaroSoft.WebSocket(where, ticket);
+            webSocket.onError = function (event) {
+                // WebSocket error events carry no detail by design; the close event follows with code/reason.
+                console.error("WebSocket error", event);
+            }
+            webSocket.onClosed = function (event) {
+                var detail = event.code ? " (code " + event.code + (event.reason ? ": " + event.reason : "") + ")" : "";
+                alert("WebSocket closed" + detail);
+            }
+            webSocket.onAgentConnected = function (from) {
+                //alert("agent " + from + " has connected");
+                var me = $('tr.deviceRow[data-id="' + from + '"]');
+                if (me != null) {
+                    me.find(".connectIcon").removeClass("ms-icon16-disconnected").addClass("ms-icon16-connected");
+                }
+            }
+            webSocket.onAgentDisconnected = function (from) {
+                //alert("agent " + from + " has disconnected");
+                var me = $('tr.deviceRow[data-id="' + from + '"]');
+                if (me != null) {
+                    me.find(".connectIcon").removeClass("ms-icon16-connected").addClass("ms-icon16-disconnected");
+                }
+            }
+
+        });
+
+    </script>
+}
+
+<div class="card">
+    <div class="card-header">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card-title">@ViewBag.Title</div>
+            </div>
+
+        </div>
+    </div>
+    <div class="card-body">
+        @await Html.PartialAsync("ItemLayout")
+    </div>
+</div>

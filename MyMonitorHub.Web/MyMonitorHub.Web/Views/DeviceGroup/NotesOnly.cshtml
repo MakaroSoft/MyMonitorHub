@@ -1,0 +1,98 @@
+@model MyMonitorHub.Domain.Models.NoteModel
+@{
+    Layout = null;
+}
+
+<div class='ms-notes-area'>
+    @if (Model.IsEditable)
+    {
+        <div style='margin-bottom: 7px;'><a class="btn btn-secondary edit buttons" title="Edit the notes" href='@Url.Action("Edit","DeviceGroup",new {id=Model.DeviceGroupId})'>Edit</a></div>
+    }
+@if (ViewBag.AllDeviceNotes != null && ViewBag.AllDeviceNotes.Count != 0)
+{
+    <div id="displayNotes" class="card">
+        <div class="card-header">
+            <div class="card-title">
+                Notes
+            </div>
+        </div>
+        <div class="card-body">
+            @if (!string.IsNullOrEmpty(ViewBag.Notes))
+            {
+                <div class="card" style="padding: 10px;">
+                    @Html.Raw(ViewBag.Notes)
+                </div>
+            }
+            @foreach (var note in ViewBag.AllDeviceNotes)
+            {
+                <div class="card" style="padding: 10px;">
+                    <div class="card-header">@note.Description</div>
+                    @Html.Raw(note.Notes)
+                </div>
+
+            }
+        </div>
+    </div>
+}
+else
+{
+    if (ViewBag.Notes != "" || ViewBag.DeviceNotes != "")
+    {
+        <div id="displayNotes" class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    Notes
+                </div>
+            </div>
+            <div class="card-body">
+                @if (!string.IsNullOrEmpty(ViewBag.Notes))
+                {
+                    <div class="card" style="padding: 10px;">
+                        @Html.Raw(ViewBag.Notes)
+                    </div>
+                }
+                @if (!string.IsNullOrEmpty(ViewBag.DeviceNotes))
+                {
+                    <div class="card" style="padding: 10px;">
+                        @Html.Raw(ViewBag.DeviceNotes)
+                    </div>
+                }
+            </div>
+        </div>
+    }
+}
+
+@if (ViewBag.Contacts.Count != 0)
+{
+    <div id="displayContact" class="card mt-3">
+        <div class="card-header">
+            <div class="card-title">
+                Contact Information
+            </div>
+        </div>
+        <div class="card-body">
+            @foreach (var contact in ViewBag.Contacts)
+            {
+                <div class="card" style="padding: 10px;">
+
+                    <div><strong>@contact.Name</strong>
+                    </div>
+                    <div style="padding: 10px;">
+                        <div>@contact.Phone1 (@contact.PhoneType1Name)</div>
+                        @if (!string.IsNullOrEmpty(contact.Phone2))
+                        {
+                            <div>@contact.Phone2 (@contact.PhoneType2Name)</div>
+                        }
+                        @if (!string.IsNullOrEmpty(contact.Phone3))
+                        {
+                            <div>@contact.Phone3 (@contact.PhoneType3Name)</div>
+                        }
+                    </div>
+                    <div padding-left: 10px;>@contact.Notes</div>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+</div>

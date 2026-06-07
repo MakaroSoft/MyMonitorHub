@@ -1,0 +1,294 @@
+@model List<MyMonitorHub.Domain.Service.MemberService.MemberModel>
+@using MyMonitorHub.Domain.Dto
+@{
+    ViewBag.Title = "Members";
+
+    var location = "location.href='" + Url.Action("Profile") + "'";
+    //Layout = "~/Views/Shared/_Settings.cshtml";
+
+    bool canEditRoles = ViewBag.CanEditRoles ?? false;
+    int currentUserId = ViewBag.CurrentUserId ?? 0;
+    var availableRoles = ViewBag.AvailableRoles as List<RoleListModel> ?? new List<RoleListModel>();
+    var updateRoleUrl = Url.Action("UpdateMemberRole", "Settings");
+    var removeMemberUrl = Url.Action("RemoveMember", "Settings");
+    var reset2faUrl = Url.Action("Reset2Fa", "Settings");
+}
+@section JavaScripts {
+    <script src="~/Scripts/jquery.validate.min.js"></script>
+    <script src="~/Scripts/jquery.validate.unobtrusive.min.js"></script>
+    <script src="~/Scripts/jquery.Jcrop.min.js"></script>
+    <script src="~/Scripts/jquery.showLoading.js"></script>
+    <script src="~/Scripts/dropzone/dropzone.min.js"></script>
+    <script src="~/Scripts/select2.min.js"></script>
+
+    <script>
+
+        function formatRoleOption(role) {
+            if (!role.id) return role.text;
+            var description = $(role.element).data('description');
+            if (!description) return role.text;
+            return $('<span>' + role.text + '<br><span class="role-option-description">' + description + '</span></span>');
+        }
+
+        $(document).ready(function() {
+
+            $('.role-dropdown').select2({
+                theme: 'bootstrap-5',
+                width: '100%',
+                minimumResultsForSearch: Infinity,
+                templateResult: formatRoleOption
+            });
+
+            var $pendingRemoveBtn = null;
+
+            $(document).on('click', '.btn-remove-member', function () {
+                $pendingRemoveBtn = $(this);
+                var email = $pendingRemoveBtn.data('member-email');
+                $('#removeMemberEmail').text(email);
+                $('#removeMemberModal').modal('show');
+            });
+
+            $('#confirmRemoveBtn').on('click', function () {
+                $('#removeMemberModal').modal('hide');
+                if (!$pendingRemoveBtn) return;
+                var $btn = $pendingRemoveBtn;
+                var memberId = $btn.data('member-id');
+                $btn.prop('disabled', true);
+                $.post('@removeMemberUrl', { memberId: memberId })
+                    .done(function (result) {
+                        if (result.success) {
+                            $btn.closest('tr').fadeOut(300, function () { $(this).remove(); });
+                        } else {
+                            $btn.prop('disabled', false);
+                            alert(result.message || 'Failed to remove member.');
+                        }
+                    })
+                    .fail(function () {
+                        $btn.prop('disabled', false);
+                        alert('An error occurred while removing the member.');
+                    });
+                $pendingRemoveBtn = null;
+            });
+
+            var $pending2faBtn = null;
+
+            $(document).on('click', '.btn-reset-2fa', function () {
+                $pending2faBtn = $(this);
+                var email = $pending2faBtn.data('member-email');
+                $('#reset2faEmail').text(email);
+                $('#reset2faModal').modal('show');
+            });
+
+            $('#confirmReset2faBtn').on('click', function () {
+                $('#reset2faModal').modal('hide');
+                if (!$pending2faBtn) return;
+                var $btn = $pending2faBtn;
+                var userId = $btn.data('user-id');
+                $btn.prop('disabled', true);
+                $.post('@reset2faUrl', { userId: userId })
+                    .done(function (result) {
+                        if (result.success) {
+                            $btn.removeClass('btn-outline-warning btn-reset-2fa')
+                                .addClass('btn-outline-secondary')
+                                .text('2FA Reset')
+                                .prop('disabled', true);
+                        } else {
+                            $btn.prop('disabled', false);
+                            alert(result.message || 'Failed to reset 2FA.');
+                        }
+                    })
+                    .fail(function () {
+                        $btn.prop('disabled', false);
+                        alert('An error occurred while resetting 2FA.');
+                    });
+                $pending2faBtn = null;
+            });
+
+            $(document).on('change', '.role-dropdown', function () {
+                var $select = $(this);
+                var memberId = $select.data('member-id');
+                var roleId = $select.val();
+                var originalRoleId = $select.data('original-role');
+
+                $.post('@updateRoleUrl', { memberId: memberId, roleId: roleId })
+                    .done(function (result) {
+                        if (result.success) {
+                            $select.data('original-role', roleId);
+                        } else {
+                            $select.val(originalRoleId).trigger('change.select2');
+                            alert(result.message || 'Failed to update role.');
+                        }
+                    })
+                    .fail(function () {
+                        $select.val(originalRoleId).trigger('change.select2');
+                        alert('An error occurred while saving the role.');
+                    });
+            });
+
+        });
+
+    </script>
+}
+
+@section Styles {
+<link href="~/Content/select2.min.css" rel="stylesheet" />
+<link href="~/Content/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+<style>
+    .tableBody tr td {
+        vertical-align: middle !important;
+    }
+    .role-dropdown {
+        min-width: 160px;
+    }
+    .role-option-description {
+        font-size: 0.78em;
+        color: #6c757d;
+    }
+    .select2-results__option--selected,
+    .select2-results__option[aria-selected=true] {
+        background-color: transparent !important;
+        color: inherit !important;
+    }
+</style>
+
+    
+}
+
+
+
+
+
+
+    <div class="modal fade" id="removeMemberModal" tabindex="-1" aria-labelledby="removeMemberModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="removeMemberModalLabel">Remove Member</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-flex align-items-start gap-3">
+                        <i class="bi bi-exclamation-triangle-fill text-warning fs-3"></i>
+                        <div>
+                            <p class="mb-1"><strong>Warning: This cannot be undone.</strong></p>
+                            <p class="mb-0">Do you want to continue removing <strong><span id="removeMemberEmail"></span></strong>?</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirmRemoveBtn">Remove</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="reset2faModal" tabindex="-1" aria-labelledby="reset2faModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="reset2faModalLabel">Reset Two-Factor Authentication</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-flex align-items-start gap-3">
+                        <i class="bi bi-shield-exclamation text-warning fs-3"></i>
+                        <div>
+                            <p class="mb-1">This will disable 2FA and delete all recovery codes for <strong><span id="reset2faEmail"></span></strong>.</p>
+                            <p class="mb-0">They will be required to set up their authenticator app again on next sign in.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-warning" id="confirmReset2faBtn">Reset 2FA</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">Members</div>
+        </div>
+        <div class="card-body">
+            <div class="row">
+
+                <div class="col-md-12 table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Role</th>
+                                <th class="d-none d-sm-table-cell d-none d-md-table-cell">Send Alerts To</th>
+                                <th class="d-none d-sm-table-cell" style="width: 1px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody class="tableBody">
+                            @foreach (var member in @Model)
+                            {
+                                <tr>
+                                    <td>
+                                        
+                                        
+                                            <img class="ms-avatar" alt="@member.UserEmail" height="50" src="@member.Avatar" width="50">
+                                            &nbsp;@member.UserEmail
+                                        
+                                        
+                                        
+                                    </td>
+                                    <td>
+                                        @if (canEditRoles && member.UserUserId != currentUserId)
+                                        {
+                                            <select class="form-select form-select-sm role-dropdown"
+                                                    data-member-id="@member.MemberId"
+                                                    data-original-role="@member.RoleId">
+                                                @foreach (var role in availableRoles)
+                                                {
+                                                    if (role.RoleId == member.RoleId)
+                                                    {
+                                                        <option value="@role.RoleId" data-description="@role.Description" selected="selected">@role.RoleCode</option>
+                                                    }
+                                                    else
+                                                    {
+                                                        <option value="@role.RoleId" data-description="@role.Description">@role.RoleCode</option>
+                                                    }
+                                                }
+                                            </select>
+                                        }
+                                        else
+                                        {
+                                            @member.RoleRoleCode
+                                        }
+                                    </td>
+                                    <td class="d-none d-sm-table-cell d-none d-md-table-cell"><a href="@Url.Action("AlertMaintenance","Settings", new {id = member.UserUserId})">@member.SendAlertsTo</a></td>
+                                    <td class="d-none d-sm-table-cell" style="white-space: nowrap;">
+                                        @if (canEditRoles && member.UserUserId != currentUserId)
+                                        {
+                                            @if (member.UserTwoFactorEnabled == true)
+                                            {
+                                                <button class="btn btn-outline-warning btn-sm btn-reset-2fa me-1"
+                                                        style="white-space: nowrap;"
+                                                        data-user-id="@member.UserUserId"
+                                                        data-member-email="@member.UserEmail"
+                                                        title="Reset two-factor authentication">Reset 2FA</button>
+                                            }
+                                            <button class="btn btn-secondary btn-sm btn-remove-member"
+                                                    data-member-id="@member.MemberId"
+                                                    data-member-email="@member.UserEmail">Remove</button>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+
+

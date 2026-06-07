@@ -1,0 +1,96 @@
+﻿        body {
+            background-color: black;
+        }
+        .toolbar {
+            position: relative;
+            z-index: 200;
+            background-color: gray;
+        }
+        .terminal {
+            z-index: 100;
+            position: relative;
+            top: 0;
+            left: 0;
+            width: 2000px;
+        }
+
+        .xterm-rows div {
+            height: 16px;
+        }
+        
+        .loading {
+            z-index: 300;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
+
+        .loading img {
+            z-index: 300;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            -webkit-transform: translate(-50%, -50%);
+            /* ReSharper disable once CssBrowserCompatibility */
+            transform: translate(-50%, -50%);
+        }
+
+        .disconnected {
+            z-index: 300;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
+
+        .disconnected img {
+            z-index: 300;
+            position: absolute;
+            /* ReSharper disable once CssBrowserCompatibility */
+            opacity: 0.8;
+            top: 50%;
+            left: 50%;
+            -webkit-transform: translate(-50%, -50%);
+            /* ReSharper disable once CssBrowserCompatibility */
+            transform: translate(-50%, -50%);
+        }
+        .keypad {
+            z-index: 200;
+            position: absolute;
+            top: 0;
+            left: 0;
+
+        }
+
+        table {
+            background-color: black;
+            border: 1px solid white;
+            color: white;
+            font-family: courier-new, courier, monospace;
+            font-size: 16px;
+        }
+        table td {
+            border: 1px solid white;
+            
+        }
+        table div {
+            cursor: pointer;
+            margin: 4px;
+            width: 70px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        table p {
+            text-align: center;
+            margin: 0;
+        }
+        .reverse {
+            color: black;
+            background-color: white;
+        }

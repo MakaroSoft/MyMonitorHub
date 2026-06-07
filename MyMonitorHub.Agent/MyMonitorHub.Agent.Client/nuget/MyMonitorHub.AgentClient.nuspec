@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<package >
+    <metadata>
+        <id>MyMonitorHub.AgentClient</id>
+        <version>1.0.0</version>
+        <authors>MakaroSoft</authors>
+        <owners>MyMonitorHub</owners>
+        <requireLicenseAcceptance>false</requireLicenseAcceptance>
+        <description>
+		A .net library to allow projects to send messages to the local MyMonitorHub Agent.
+        </description>
+        <copyright>Copyright 2013 MyMonitorHub</copyright>
+    </metadata>
+</package>

@@ -1,0 +1,169 @@
+@model MyMonitorHub.Web.Models.RolesModel
+@{
+    ViewBag.Title = "Roles";
+    ViewBag.currentZonePage = "roles";
+}
+@section Styles
+{
+    <style>
+        .firstColumnWidth {
+            width: 200px;
+        }
+        .lastColumnWidth {
+            width: 50px;
+        }
+    </style>
+}
+@section javascripts {
+
+    <script type="text/javascript">
+        $(document).ready(function() {
+            $("#btnDelete").click(function() {
+                $("#confirm-delete").modal("hide");
+                $.ajax({
+                    cache: false,
+                    type: "POST",
+                    url: $(this).attr('href'),
+                    dataType: 'json',
+                    accept: 'application/json',
+
+                    error: function(xhr, ajaxOptions, thrownError) {
+                        var message = xhr.status + " - " + thrownError;
+                        $("#processing-result").text(message).removeClass('').addClass('alert').addClass('alert-warning').show();
+                    },
+                    success: function (data) {
+                        var roleId = $("#btnDelete").attr("roleid");
+                        $("#role-" + roleId).remove();
+                        $("#processing-result").text("Successfully deleted the role").removeClass('').addClass('alert').addClass('alert-success').show();
+                    }
+                });
+                return false;
+            });
+            $('#confirm-delete').on('show.bs.modal', function (e) {
+                $("#processing-result").hide();
+                $("#btnDelete").attr('href', $(e.relatedTarget).data('href'));
+                $("#btnDelete").attr('roleid', $(e.relatedTarget).data('roleid'));
+
+                $('.roleCode').html('<strong>' + $(e.relatedTarget).data('code') + '</strong>');
+            });
+            $("#btnNew").click(function () {
+                window.location = '@Url.Action("Insert","Role")';
+            });
+        });
+    </script>
+}
+<div class="card">
+    <div class="card-header">
+        <div class="card-title">System Roles</div>
+    </div>
+    <div class="card-body">
+        <table class="table table-sm">
+            <thead>
+                <tr>
+                    <th class="firstColumnWidth">Role</th>
+                    <th>Users</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var role in Model.SystemRoles)
+                {
+                    <tr>
+                        @if (role.RoleCode == "Owner" || role.RoleCode == "NoAccess")
+                        {
+                            <td>@role.RoleCode</td>
+                        }
+                        else
+                        {
+                            <td><a href="@Url.Action("Role", "Role", new {id = role.RoleId})" class="underline">@role.RoleCode</a></td>
+                        }
+                        <td>
+                            <a class="underline" href="@Url.Action("Members", "Settings", new {id = role.RoleId})">@role.UserCount</a>
+                        </td>
+                        <td>@role.Description</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@if (ViewBag.EnableAdd == "") {
+<div class="row">
+    <div class="form-group col-md-12">
+        <div class="float-end">
+            <button id="btnNew" class="btn btn-secondary" >New Role</button>
+        </div>
+    </div>
+</div>
+}
+
+<div id='processing-result' style="display: none;"></div>
+
+
+<div class="card">
+    <div class="card-header">
+        <div class="card-title">Custom Roles</div>
+    </div>
+    <div class="card-body">
+        <table class="table table-sm">
+            <thead>
+                <tr>
+                    <th class="firstColumnWidth">Role</th>
+                    <th>Users</th>
+                    <th>Description</th>
+@if (ViewBag.EnableDelete == "")
+{
+                    <th class="lastColumnWidth">Delete</th>    
+}
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var role in @Model.CustomRoles)
+                {
+                    <tr id="role-@role.RoleId">
+                        <td><a href="@Url.Action("Role", "Role", new {id = role.RoleId})" class="underline">@role.RoleCode</a></td>
+                        <td>
+                            <a class="underline" href="@Url.Action("Members", "Settings", new {id = role.RoleId})">@role.UserCount</a>
+                        </td>
+                        <td>@role.Description</td>
+                            @if (ViewBag.EnableDelete == "")
+                            {
+                                <td>
+                                    <a
+                                       data-roleid="@role.RoleId"
+                                       data-code="@role.RoleCode"
+                                       data-href="@Url.Action("Delete", "Role",new { id = role.RoleId })"
+                                       data-bs-toggle="modal"
+                                       data-bs-target="#confirm-delete" href="#">
+                                        <span class="ms-icon16 ms-icon16-fail"></span>
+                                    </a>
+                                </td>
+                            }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+<div class="modal" id="confirm-delete" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            
+            
+
+            <div class="modal-header">
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h4 class="modal-title" id="myModalLabel">Confirm Delete</h4>
+            </div>
+            <div class="modal-body">
+                <p>You are about to delete the role: <label class="roleCode"></label></p>
+                <p>Do you want to proceed?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <a id="btnDelete" href="#" roleid="#" class="btn btn-danger danger">Delete</a>
+            </div>
+        </div>
+    </div>
+</div>

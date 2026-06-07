@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<package>
+  <metadata>
+    <id>MyMonitorHub.Common</id>
+    <version>1.0.0</version>
+    <authors>MakaroSoft</authors>
+    <owners>MakaroSoft</owners>
+    <description>MyMonitorHub.Common</description>
+    <copyright>Copyright 2021</copyright>
+  </metadata>
+</package>

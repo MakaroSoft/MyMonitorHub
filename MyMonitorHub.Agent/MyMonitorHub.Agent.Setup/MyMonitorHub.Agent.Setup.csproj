@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows7.0</TargetFramework>
+    <OutputType>WinExe</OutputType>
+    <UseWindowsForms>true</UseWindowsForms>
+    <AssemblyName>MyMonitorHub.Agent.Setup</AssemblyName>
+    <RootNamespace>MyMonitorHub.Agent</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="System.ServiceProcess.ServiceController" Version="10.0.8" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\MyMonitorHub.Agent.Common\MyMonitorHub.Agent.Common.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="PerfCenterCpl.ico" />
+    <Content Include="Version.txt" CopyToOutputDirectory="Always" />
+    <None Include="license.rtf" CopyToOutputDirectory="Always" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,116 @@
+@model MyMonitorHub.Web.Models.RoleMaintModel
+@{
+    ViewBag.Title = "Role";
+    ViewBag.currentZonePage = "role";
+    var index = 0;
+}
+@section Styles
+{
+    <style>
+.top-buffer { margin-top:15px; }       
+    </style>
+}
+@section javascripts {
+
+    <script src="~/Scripts/knockout-3.5.0.js"></script>
+    <script src="~/Scripts/knockout.mapping-latest.js"></script>
+
+    <script type="text/javascript">
+
+        var data = @Json.Serialize(Model.Data);
+        var viewModel = ko.mapping.fromJS(data);
+
+        function editMode() {
+            $("#processing-result").hide();
+            $(".checkboxes").removeAttr('disabled');
+            $("#txtDescription").removeAttr('disabled');
+            $("#btnEdit").hide();
+            $("#btnSave").show();
+            $("#btnCancel").show();
+        }
+        function viewMode() {
+            $(".checkboxes").attr('disabled','disabled');
+            $("#txtDescription").attr('disabled','disabled');
+            $("#btnEdit").show();
+            $("#btnSave").hide();
+            $("#btnCancel").hide();
+        }
+
+        $(document).ready(function() {
+            ko.applyBindings(viewModel);
+
+            $("#btnEdit").click(function() {
+                editMode();
+            });
+            $("#btnCancel").click(function() {
+                location.reload();
+            });
+            $("#btnSave").click(function() {
+
+                var unmapped1 = ko.toJS(viewModel);
+
+                $.ajax({
+                    cache: false,
+                    type: "POST",
+                    url: "@Url.Action("Save", "Role", new {id = ViewContext.RouteData.Values["id"]})",
+                    data: unmapped1,
+                    dataType: 'json',
+                    accept: 'application/json',
+
+                    error: function(xhr, ajaxOptions, thrownError) {
+                        var message = xhr.status + " - " + thrownError;
+                        $("#processing-result").text(message).removeClass('').addClass('alert').addClass('alert-warning').show();
+                        viewMode();
+                    },
+                    success: function(data) {
+                        $("#processing-result").text("Successfully saved role").removeClass('').addClass('alert').addClass('alert-success').show();
+                        viewMode();
+                    }
+                });
+            });
+
+        });
+
+    </script>
+}
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">@ViewBag.Title - @Model.Data.Name</div>
+        </div>
+        <div class="card-body">
+            <div id='processing-result' style="display: none;"></div>
+            <div class="row">
+                <div class="form-group col-md-6">
+                    <input id="txtDescription" type="email" class="form-control" data-bind="value: description" disabled="disabled">
+                </div>
+                <div class="form-group col-md-6">
+                    <div class="float-end">
+                        <button id="btnEdit" class="btn btn-secondary" @ViewBag.EnableEdit>Edit</button>
+                        <button id="btnSave" class="btn btn-secondary" style="display: none;">Save</button>
+                        <button id="btnCancel" class="btn btn-secondary" style="display: none;">Cancel</button>
+                    </div>
+                </div>
+            </div>
+            <div class="row mt-3">
+                <div class="col-md-12">
+
+                    <table class="table table-sm">
+
+                        @foreach (var category in @Model.Layout)
+                        {
+                            <tr class="table-active fw-bold"><td colspan="2">@category.Description</td></tr>
+
+                            foreach (var permission in category.AccessCodes)
+                            {
+                                <tr>
+                                    <td><input id='group@(index)' class="checkboxes" disabled="disabled" type="checkbox" data-bind="checked: permissions()[@index].check" /></td>
+                                    <td><label for='group@(index)'>@permission.Description</label></td>
+                                </tr>
+                                index++;
+                            }
+                        }
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>

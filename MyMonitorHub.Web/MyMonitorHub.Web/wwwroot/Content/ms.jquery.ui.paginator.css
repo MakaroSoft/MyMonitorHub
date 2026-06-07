@@ -1,0 +1,30 @@
+﻿.ms-paginator
+{
+    padding: 2px;
+    text-align: center;
+    font-weight: normal !important;
+}
+
+    .ms-paginator input
+    {
+        width: 40px;
+    }
+
+    .ms-paginator .centered
+    {
+        margin: 0 auto;
+    }
+
+    .ms-paginator [name=items]
+    {
+        float: right;
+        padding-right: 10px;
+        vertical-align: text-bottom;
+    }
+
+    .ms-paginator .imageButton
+    {
+        vertical-align: text-bottom;
+        display: inline-block;
+        padding-bottom: 1px;
+    }

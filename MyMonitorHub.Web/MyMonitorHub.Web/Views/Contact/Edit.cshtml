@@ -1,0 +1,176 @@
+@using MyMonitorHub.Domain.Security
+@model MyMonitorHub.Domain.Models.ContactDetailModel
+@{
+    ViewBag.Title = "Contact Maintenance";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var disable = "";
+    if (!Authorizer.Authorize(Permissions.CanEditDeviceMaint))
+    {
+        disable = "disabled = 'disabled'";
+    }
+    var cancelUrl = Url.Action("Edit", "Contact", new { id = ViewContext.RouteData.Values["id"] });
+    var deviceGroupId = Context.Request.Query["deviceGroupId"].ToString();
+    if (!string.IsNullOrEmpty(deviceGroupId))
+    {
+        cancelUrl += "?deviceGroupId=" + deviceGroupId;
+    }
+    bool isNew = Model.ContactId == -1;
+}
+
+@section styles {
+    <link href="~/Content/showLoading.css" rel="stylesheet" />
+}
+
+@section JavaScripts {
+    <script src="~/Scripts/jquery.showLoading.js"></script>
+    <script src="~/Scripts/jquery.validate.min.js"></script>
+    <script src="~/Scripts/jquery.validate.unobtrusive.min.js"></script>
+    <script src="~/Scripts/knockout-3.5.0.js"></script>
+    <script src="~/Scripts/knockout.mapping-latest.js"></script>
+    <script>
+
+        var viewModel = ko.mapping.fromJS(@Json.Serialize(Model));
+        $(document).ready(function() {
+            ko.applyBindings(viewModel);
+            $('#btnSave').click(function() {
+                if ($("#mainForm").valid()) {
+
+                    @* format the data into a json string *@
+                    var data = ko.toJSON(viewModel);
+
+                    $("#mainBody").showLoading();
+
+                    $.ajax({
+                        url: '@Url.Action("Edit", "Contact")',
+                        type: "POST",
+                        data: data,
+                        contentType: "application/json; charset=utf-8",
+                        cache: false,
+                        success: function(result) {
+                            if (result.status === "Success") {
+                                @if (isNew)
+                                {
+                                    <text>
+                                window.location = "@Url.Action("Edit", "DeviceGroup", new {id = Model.DeviceGroupId})";
+                                return;
+                                    </text>
+                                }
+                                else
+                                {
+                                    <text>
+                                viewModel.title(viewModel.name());
+                                $("#alertFail").hide();
+                                $("#alertSuccess")
+                                    .html(result.response)
+                                    .show();
+                                    </text>
+
+                                }
+                            } else {
+                                $("#alertSuccess").hide();
+                                $("#alertFail")
+                                    .html("Failed. Reason: <strong>" + result.reason + "</strong>")
+                                    .show();
+
+                            }
+                        },
+                        error: function(xhr, ajaxOptions, thrownError) {
+                            $("#alertSuccess").hide();
+                            $("#alertFail")
+                                .html("Failed. Reason: <strong>" + thrownError + "</strong>")
+                                .show();
+                        },
+                        complete: function(data) {
+                            $("#mainBody").hideLoading();
+                        }
+                    });
+
+
+                }
+            });
+
+
+        });
+
+    </script>
+}
+
+<div class="card">
+    <div class="card-header">
+        <div class="card-title">Contact Maintenance</div>
+    </div>
+
+    <div id="mainBody" class="card-body">
+        <form id="mainForm">
+            <legend class="mb-3">
+                <a class="underline" data-bind="attr: { href: '@Url.Action("Edit", "DeviceGroup")/'+deviceGroupId() }, text: deviceGroupDescription"></a> - <span data-bind="text: title"></span>
+            </legend>
+
+            <div class="row mb-2 col-lg-8">
+                <label class="col-sm-4 col-form-label text-sm-end" for="Name">Contact Name</label>
+                <div class="col-sm-8">
+                    <input data-bind="value: name" class="form-control" id="Name" name="Name" type="text" @disable required minlength="3" maxlength="50" />
+                </div>
+            </div>
+
+            <div class="row mb-2 col-lg-8">
+                <label class="col-sm-4 col-form-label text-sm-end" for="Phone1">Phone1</label>
+                <div class="col-sm-5">
+                    <input data-bind="value: phone1" class="form-control" id="Phone1" name="Phone1" type="text" @disable required maxlength="25" />
+                </div>
+                <div class="col-sm-3">
+                    <select class="form-select" data-bind="value: phoneType1Id">
+                        @foreach (var phoneType in ViewBag.PhoneTypes)
+                        {
+                            <option value="@phoneType.PhoneTypeId">@phoneType.Name</option>
+                        }
+                    </select>
+                </div>
+            </div>
+
+            <div class="row mb-2 col-lg-8">
+                <label class="col-sm-4 col-form-label text-sm-end" for="Phone2">Phone2</label>
+                <div class="col-sm-5">
+                    <input data-bind="value: phone2" class="form-control" id="Phone2" name="Phone2" type="text" @disable maxlength="25" />
+                </div>
+                <div class="col-sm-3">
+                    <select class="form-select" data-bind="value: phoneType2Id">
+                        @foreach (var phoneType in ViewBag.PhoneTypes)
+                        {
+                            <option value="@phoneType.PhoneTypeId">@phoneType.Name</option>
+                        }
+                    </select>
+                </div>
+            </div>
+
+            <div class="row mb-2 col-lg-8">
+                <label class="col-sm-4 col-form-label text-sm-end" for="Phone3">Phone3</label>
+                <div class="col-sm-5">
+                    <input data-bind="value: phone3" class="form-control" id="Phone3" name="Phone3" type="text" @disable maxlength="25" />
+                </div>
+                <div class="col-sm-3">
+                    <select class="form-select" data-bind="value: phoneType3Id">
+                        @foreach (var phoneType in ViewBag.PhoneTypes)
+                        {
+                            <option value="@phoneType.PhoneTypeId">@phoneType.Name</option>
+                        }
+                    </select>
+                </div>
+            </div>
+
+            <div class="row mb-2 col-lg-8">
+                <label class="col-sm-4 col-form-label text-sm-end" for="Notes">Notes</label>
+                <div class="col-sm-8">
+                    <input data-bind="value: notes" class="form-control" id="Notes" name="Notes" type="text" @disable maxlength="1000" />
+                </div>
+            </div>
+        </form>
+
+        <div class="text-end mt-3">
+            <input id="btnSave" class="btn btn-primary" type="button" value="Save" @disable />
+            <a href="@cancelUrl" class="btn btn-secondary">Cancel</a>
+        </div>
+    </div>
+</div>
+<div id="alertSuccess" class="alert alert-success" hidden="hidden"></div>
+<div id="alertFail" class="alert alert-danger" hidden="hidden"></div>

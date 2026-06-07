@@ -1,0 +1,54 @@
+@using MyMonitorHub.Domain.Util
+@model MyMonitorHub.Domain.Models.LogOnModel
+@{
+    ViewBag.Title = "Log On";
+    ViewBag.SubTitle = "Log On";
+}
+@section JavaScripts {
+    <script src="~/Scripts/jquery.validate.min.js"></script>
+    <script src="~/Scripts/jquery.validate.unobtrusive.min.js"></script>
+}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-4 col-sm-8 col-11">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <div class="card-title">Log On</div>
+            </div>
+            <div class="card-body p-4">
+                @using (Html.BeginForm())
+                {
+                    @Html.ValidationSummary(true, "Login was unsuccessful. Please correct the errors and try again.", new { @class = "alert alert-danger mb-3" })
+
+                    <div class="mb-3">
+                        <label class="form-label" for="Email">Email Address</label>
+                        @Html.TextBoxFor(m => m.Email, new { @class = "form-control", placeholder = "Enter your email address", autofocus = "autofocus", type = "email" })
+                        @Html.ValidationMessageFor(m => m.Email, "", new { @class = "text-danger small" })
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="Password">Password</label>
+                        @Html.PasswordFor(m => m.Password, new { @class = "form-control", placeholder = "Password" })
+                        @Html.ValidationMessageFor(m => m.Password, "", new { @class = "text-danger small" })
+                    </div>
+
+                    <div class="mb-4 form-check">
+                        @Html.CheckBoxFor(m => m.RememberMe, new { @class = "form-check-input" })
+                        @Html.LabelFor(m => m.RememberMe, new { @class = "form-check-label" })
+                    </div>
+
+                    <div class="d-grid mb-3">
+                        <button type="submit" class="btn btn-primary">Sign in</button>
+                    </div>
+
+                    <div class="text-center mb-2">
+                        <small>Don't have an account yet? @Html.ActionLink("Register", "Register", "Account")</small>
+                    </div>
+
+                    <div class="text-center">
+                        <small>Forgot your @Html.ActionLink("Password?", "RecoverPassword")</small>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

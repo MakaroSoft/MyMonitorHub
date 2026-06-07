@@ -1,0 +1,538 @@
+@model MyMonitorHub.Domain.Models.UserModel
+@{
+    ViewBag.Title = "Personal Profile";
+    var location = "window.location.reload();";
+}
+
+
+
+
+@section JavaScripts {
+    <script src="~/Scripts/jquery.validate.min.js"></script>
+    <script src="~/Scripts/jquery.validate.unobtrusive.min.js"></script>
+    <script src="~/Scripts/jquery.Jcrop.min.js"></script>
+    <script src="~/Scripts/jquery.showLoading.js"></script>
+    <script src="~/Scripts/dropzone/dropzone.min.js"></script>
+
+    <script>
+        Dropzone.autoDiscover = false;
+
+        var myUserId = "@Model.UserId";
+
+        var myBase = "@Url.Content("~/Images/Avatars")";
+        var coords;
+
+        function saveCoords(c) {
+            coords = c;
+        }
+
+        $(document).ready(function() {
+
+            var jcrop;
+            var tempFile;
+
+            $("#btnGravatar").click(function () {
+                $("#dropit").showLoading();
+                $.ajax({
+                    cache: false,
+                    type: "POST",
+                    url: "@Url.Action("UseGravatar")",
+                dataType: 'json',
+                accept: 'application/json',
+                error: function(xhr, ajaxOptions, thrownError) {
+                    $("#dropit").hideLoading();
+                    var message = xhr.status + " - " + thrownError;
+                    alert(message);
+                },
+                success: function(response) {
+                    $("#dropit").hideLoading();
+                    $(".ms-avatar").attr("src", response);
+                    $('#myModal').modal('hide');
+                }
+
+            });
+        });
+
+            $("#btnSet").click(function() {
+                @* Jcrop hides the original <img> and renders inside a .jcrop-holder,
+                   so $("#tempImage").width()/.height() returns 0 once Jcrop is attached.
+                   Use Jcrop's own API for the displayed image dimensions instead. *@
+                var width = 0, height = 0;
+                if (jcrop && typeof jcrop.getBounds === 'function') {
+                    var b = jcrop.getBounds();
+                    width  = b[0];
+                    height = b[1];
+                }
+                if (!width || !height) {
+                    var imgEl = document.getElementById('tempImage');
+                    width  = imgEl.naturalWidth  || $("#tempImage").width();
+                    height = imgEl.naturalHeight || $("#tempImage").height();
+                }
+
+                @* If the user never moved the selection, fall back to the initial 160×160 crop. *@
+                var c = coords || (jcrop && jcrop.tellSelect && jcrop.tellSelect()) || null;
+                if (!c || !c.w || !c.h) {
+                    c = { x: 0, y: 0, x2: 160, y2: 160, w: 160, h: 160 };
+                }
+
+                @* trueSize scales the raw display coordinates by a fractional factor,
+                   so the coords come back as floats. The controller binds them to ints,
+                   and "142.22" would silently fail to bind and arrive as 0 — which then
+                   crashes `new Bitmap(0,0,…)`. Round everything to integers here. *@
+                width  = Math.round(width);
+                height = Math.round(height);
+                c = {
+                    x:  Math.max(0, Math.round(c.x)),
+                    y:  Math.max(0, Math.round(c.y)),
+                    x2: Math.max(0, Math.round(c.x2)),
+                    y2: Math.max(0, Math.round(c.y2)),
+                    w:  Math.max(1, Math.round(c.w)),
+                    h:  Math.max(1, Math.round(c.h))
+                };
+
+                var myData = { file: tempFile, height: height, width: width, coords: c };
+                $.ajax({
+                    cache: false,
+                    type: "POST",
+                    url: "@Url.Action("CropAndSave")",
+                    data: myData,
+                    dataType: 'json',
+                    accept: 'application/json',
+                    error: function(xhr, ajaxOptions, thrownError) {
+                        var message = xhr.status + " - " + thrownError;
+                        alert(message);
+                    },
+                    success: function(response) {
+                        var d = new Date();
+                        $(".ms-avatar").attr("src", myBase + "/User-" + myUserId + ".png?" + d.getTime());
+                        $('#myModal').modal('hide');
+                    }
+
+                });
+            });
+
+            function destroyJcrop() {
+                if (jcrop != null) {
+                    try {
+                        var jcropApi = $('#tempImage').data('Jcrop');
+                        if (jcropApi) jcropApi.destroy();
+                    } catch (e) { /* ignore */ }
+                    jcrop = null;
+                }
+                @* jcrop wraps the img in a .jcrop-holder and rewrites inline styles;
+                   reset everything so the next show starts clean. *@
+                $("#tempImage").removeAttr("style");
+            }
+
+            function initJcrop() {
+                destroyJcrop();
+                $("#tempImage").removeAttr("style");
+
+                var imgEl = document.getElementById('tempImage');
+                var natW = imgEl.naturalWidth  || 0;
+                var natH = imgEl.naturalHeight || 0;
+
+                @* Pin Jcrop to the *natural* image dimensions via trueSize so that
+                   selection coordinates (and getBounds()) come back in natural-pixel
+                   space regardless of how the modal scales the image for display.
+                   Also cap the on-screen render via boxWidth/boxHeight so big phone
+                   photos don't blow out the modal. *@
+
+                @* With trueSize set, setSelect values are also in natural-pixel space.
+                   Pick a sensible square that's ~⅓ of the smaller side, min 160px. *@
+                var minNat = Math.min(natW || 0, natH || 0);
+                var sel = minNat > 0 ? Math.max(160, Math.round(minNat / 3)) : 160;
+
+                var opts = {
+                    setSelect: [0, 0, sel, sel],
+                    aspectRatio: 1,
+                    boxWidth: 720,
+                    boxHeight: 540,
+                    onSelect: saveCoords,
+                    onChange: saveCoords
+                };
+                if (natW > 0 && natH > 0) opts.trueSize = [natW, natH];
+
+                jcrop = $("#tempImage").Jcrop(opts);
+            }
+
+            @* Initialize Jcrop only AFTER the modal is fully shown and the image has loaded.
+               Jcrop needs real, non-zero dimensions to render the crop overlay. *@
+            $('#myModal').on('shown.bs.modal', function () {
+                var img = document.getElementById('tempImage');
+                if (img && img.complete && img.naturalWidth > 0) {
+                    initJcrop();
+                } else {
+                    $('#tempImage').one('load', initJcrop);
+                }
+            });
+
+            $('#myModal').on('hidden.bs.modal', function () {
+                destroyJcrop();
+            });
+
+            var myDropzone = new Dropzone("#dropit", {
+                url: "@Url.Action("SaveUploadedFile")",
+                previewsContainer: "#nowhere",
+                clickable: "#btnBrowse",
+                headers: {
+                    "RequestVerificationToken": $('input[name="__RequestVerificationToken"]').first().val()
+                },
+                init: function() {
+                    this.on("addedfile", function(file) {
+                        $("#dropit").showLoading();
+                    });
+                    this.on("success", function(file, response) {
+                        @* ASP.NET Core's default JSON serializer uses camelCase,
+                           so `new { Message = ... }` arrives as `message` on the client. *@
+                        var fileName = response.message || response.Message;
+                        tempFile = fileName;
+                        var d = new Date();
+                        $("#dropit").hideLoading();
+                        destroyJcrop();
+                        $("#tempImage").attr("src", myBase + "/" + fileName + "?" + d.getTime());
+                        $('#myModal').modal('show');
+                    });
+                    this.on("error", function(files, message, xhr) {
+                        $("#dropit").hideLoading();
+                        alert("failed to upload");
+                    });
+
+                }
+            });
+        });
+
+        // ── Password strength rules ──────────────────────────────────────────
+        (function () {
+            var pwRules = [
+                { id: 'rule-length',    test: function (v) { return v.length >= 8; } },
+                { id: 'rule-uppercase', test: function (v) { return /[A-Z]/.test(v); } },
+                { id: 'rule-lowercase', test: function (v) { return /[a-z]/.test(v); } },
+                { id: 'rule-number',    test: function (v) { return /[0-9]/.test(v); } },
+                { id: 'rule-special',   test: function (v) { return /[!@@#$%^&*()\-_=+\[\]{};:'",./<>?\\|`~]/.test(v); } }
+            ];
+
+            function checkRules(val) {
+                pwRules.forEach(function (rule) {
+                    var $li  = $('#' + rule.id);
+                    var $ico = $li.find('.rule-icon');
+                    if (rule.test(val)) {
+                        $li.addClass('pw-rule-met');
+                        $ico.html('&#x2713;');
+                    } else {
+                        $li.removeClass('pw-rule-met');
+                        $ico.html('&#x2715;');
+                    }
+                });
+            }
+
+            $(document).ready(function () {
+                var $pwMsg  = $('[data-valmsg-for="Password"]');
+                var $cpwMsg = $('[data-valmsg-for="ConfirmPassword"]');
+
+                function clearMsg($span) {
+                    $span.text('').removeClass('field-validation-error').addClass('field-validation-valid');
+                }
+                function showMsg($span, text) {
+                    $span.text(text).removeClass('field-validation-valid').addClass('field-validation-error');
+                }
+
+                $('#Password, #ConfirmPassword').on('input', function () {
+                    clearMsg($pwMsg);
+                    clearMsg($cpwMsg);
+                });
+
+                $('#Password').on('input', function () {
+                    checkRules($(this).val());
+                });
+
+                // Lightweight submit-time check: only block submission if the user
+                // entered a password that fails a rule or doesn't match the confirm.
+                // Blank password is always allowed (means "don't change").
+                $('form[role="form"]').on('submit', function (e) {
+                    var pw  = $('#Password').val() || '';
+                    var cpw = $('#ConfirmPassword').val() || '';
+
+                    clearMsg($pwMsg);
+                    clearMsg($cpwMsg);
+
+                    if (!pw && !cpw) return; // both blank → fine
+
+                    if (pw !== cpw) {
+                        showMsg($cpwMsg, 'The password and confirmation password do not match.');
+                        e.preventDefault();
+                        return;
+                    }
+                    var allOk = pwRules.every(function (r) { return r.test(pw); });
+                    if (!allOk) {
+                        showMsg($pwMsg, 'Password does not meet all the requirements listed below.');
+                        e.preventDefault();
+                    }
+                });
+            });
+        })();
+        // ─────────────────────────────────────────────────────────────────────
+
+    </script>
+}
+
+@section Styles {
+    <link href="~/Content/showLoading.css" rel="stylesheet" />
+    <link href="~/Scripts/dropzone/dropzone.min.css" rel="stylesheet" />
+    <link href="~/Content/jquery.Jcrop.min.css" rel="stylesheet" />
+
+    <style>
+        #dropZone {
+            background: gray;
+            border: black dashed 3px;
+            width: 200px;
+            padding: 50px;
+            text-align: center;
+            color: white;
+        }
+        .pw-rules li {
+            color: #6c757d;
+            line-height: 1.7;
+            transition: color 0.2s ease;
+        }
+        .pw-rules li.pw-rule-met {
+            color: #198754;
+            font-weight: 500;
+        }
+        .pw-rules .rule-icon {
+            display: inline-block;
+            width: 1em;
+            font-weight: bold;
+        }
+        /* Constrain the cropping image to the modal width BEFORE Jcrop wraps it.
+           Jcrop's CSS forces `max-width:none` on .jcrop-holder img, so once the
+           crop overlay is initialized the explicit width below controls the size. */
+        #myModal #tempImage {
+            max-width: 100%;
+            height: auto;
+        }
+        #myModal .jcrop-holder {
+            margin: 0 auto;
+        }
+    </style>
+}
+
+    <div id="dropit" class="card">
+        <div class="card-header">
+            <div class="card-title">@ViewBag.Title</div>
+        </div>
+        <div class="card-body">
+            <div class="row">
+
+                <div class="col-md-12">
+                    <fieldset>
+                        <legend>Profile picture</legend>
+                    </fieldset>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-2">
+                    <img class="ms-avatar" src="@ViewBag.Avatar" alt="@Model.Email" height="100" />
+                </div>
+
+                <div class="col-md-10">
+                    <div>
+                            
+                        <button id="btnBrowse" class="btn btn-secondary">Upload new picture</button>
+                        <button id="btnGravatar" class="btn btn-secondary">Use gravatar.com</button>
+                    </div>
+                    <div style="margin-top: 20px;">
+                        you can also drag and drop a picture from your computer
+                    </div>
+                    <div id="nowhere"style="display: none"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<form method="post" role="form" novalidate="novalidate" class="mt-4">
+    <div class="card">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <fieldset>
+                        <legend>User Information</legend>
+
+                        <div class="row mb-2">
+                            @Html.LabelFor(m => m.Email, new { @class = "col-sm-4 col-form-label text-end" })
+                            <div class="col-sm-8">
+                                @Html.TextBoxFor(m => m.Email, new { @class = "form-control bg-body-secondary", @readonly = "readonly" })
+                                @Html.HiddenFor(m => m.Email)
+                                @Html.ValidationMessageFor(m => m.Email, "", new { @class = "text-danger small" })
+                            </div>
+                        </div>
+                        <div class="row mb-2">
+                            @Html.LabelFor(m => m.Password, new { @class = "col-sm-4 col-form-label text-end" })
+                            <div class="col-sm-8">
+                                <input type="password" name="Password" id="Password" class="form-control" autocomplete="new-password" @(ViewBag.PasswordIsDisabled ? "disabled" : "") />
+                                @Html.ValidationMessageFor(m => m.Password, "", new { @class = "text-danger small" })
+                                <div class="form-text text-muted">Leave blank to keep your current password.</div>
+                                @if (!ViewBag.PasswordIsDisabled)
+                                {
+                                    <div id="password-rules" class="mt-2" style="font-size:0.82rem; padding-left:20px;">
+                                        <div class="fw-semibold mb-1" style="font-size:0.78rem; color:#6c757d; text-transform:uppercase; letter-spacing:.03em;">Password requirements</div>
+                                        <ul class="list-unstyled mb-0 pw-rules">
+                                            <li id="rule-length">    <span class="rule-icon">&#x2715;</span> At least 8 characters</li>
+                                            <li id="rule-uppercase"> <span class="rule-icon">&#x2715;</span> At least one uppercase letter (A&#8211;Z)</li>
+                                            <li id="rule-lowercase"> <span class="rule-icon">&#x2715;</span> At least one lowercase letter (a&#8211;z)</li>
+                                            <li id="rule-number">    <span class="rule-icon">&#x2715;</span> At least one number (0&#8211;9)</li>
+                                            <li id="rule-special">   <span class="rule-icon">&#x2715;</span> At least one special character (!&#64;#$%^&amp;*)</li>
+                                        </ul>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                        <div class="row mb-2">
+                            @Html.LabelFor(m => m.ConfirmPassword, new { @class = "col-sm-4 col-form-label text-end" })
+                            <div class="col-sm-8">
+                                <input type="password" name="ConfirmPassword" id="ConfirmPassword" class="form-control" autocomplete="new-password" @(ViewBag.PasswordIsDisabled ? "disabled" : "") />
+                                @Html.ValidationMessageFor(m => m.ConfirmPassword, "", new { @class = "text-danger small" })
+                            </div>
+                        </div>
+                    </fieldset>
+                </div>
+
+                <div class="col-md-6">
+                    <fieldset>
+                        <legend>General</legend>
+
+                        <div class="row mb-2">
+                            @Html.LabelFor(m => m.FirstName, new { @class = "col-sm-4 col-form-label text-end" })
+                            <div class="col-sm-8">
+                                @Html.TextBoxFor(m => m.FirstName, new { @class = "form-control" })
+                                @Html.ValidationMessageFor(m => m.FirstName, "", new { @class = "text-danger small" })
+                            </div>
+                        </div>
+                        <div class="row mb-2">
+                            @Html.LabelFor(m => m.LastName, new { @class = "col-sm-4 col-form-label text-end" })
+                            <div class="col-sm-8">
+                                @Html.TextBoxFor(m => m.LastName, new { @class = "form-control" })
+                                @Html.ValidationMessageFor(m => m.LastName, "", new { @class = "text-danger small" })
+                            </div>
+                        </div>
+                    </fieldset>
+                </div>
+            </div>
+
+            @if (ViewBag.success)
+            {
+                <div class="alert alert-success mt-3">Your changes have been successfully saved.</div>
+            }
+
+            <div class="float-end mt-2">
+                <a href="@Url.Action("AlertMaintenance","Settings")" class="btn btn-secondary" type="button">Alert Maintenance</a>
+                <input class="btn btn-primary" type="submit" value="Save" @ViewBag.saveDisabled />
+                <input class="btn btn-secondary" onclick="@location" type="button" value="Cancel" />
+            </div>
+        </div>
+    </div>
+</form>
+
+
+
+<div class="card mt-4">
+    <div class="card-header">
+        <div class="card-title">Two-Factor Authentication</div>
+    </div>
+    <div class="card-body">
+        @if (ViewBag.TwoFactorEnabled == true)
+        {
+            <p class="mb-1">
+                <span class="badge bg-success">Enabled</span>
+                Two-factor authentication is active on your account.
+            </p>
+            <p class="mb-3 text-muted small">
+                You have <strong>@ViewBag.RecoveryCodesRemaining</strong> recovery code(s) remaining.
+                @if ((int)ViewBag.RecoveryCodesRemaining == 0)
+                {
+                    <span class="text-warning fw-semibold">You have no recovery codes left. Reset 2FA to generate new ones.</span>
+                }
+            </p>
+            <button type="button" class="btn btn-outline-warning" id="btnReset2fa">Reset 2FA&hellip;</button>
+        }
+        else
+        {
+            <p class="mb-3">
+                <span class="badge bg-secondary">Not set up</span>
+                Two-factor authentication is not enabled on your account.
+            </p>
+            <a href="@Url.Action("EnableAuthenticator", "Account")" class="btn btn-outline-primary">Set up authenticator app</a>
+        }
+    </div>
+</div>
+
+<div class="modal fade" id="reset2faSelfModal" tabindex="-1" aria-labelledby="reset2faSelfModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="reset2faSelfModalLabel">Reset Two-Factor Authentication</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex align-items-start gap-3">
+                    <i class="bi bi-shield-exclamation text-warning fs-3"></i>
+                    <div>
+                        <p class="mb-1">This will disable 2FA and delete all your recovery codes.</p>
+                        <p class="mb-0">You will be required to set up your authenticator app again on your next sign in.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-warning" id="confirmReset2faSelfBtn">Reset 2FA</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function () {
+        var reset2faUrl = '@Url.Action("Reset2Fa", "MySettings")';
+
+        $('#btnReset2fa').on('click', function () {
+            $('#reset2faSelfModal').modal('show');
+        });
+
+        $('#confirmReset2faSelfBtn').on('click', function () {
+            $('#reset2faSelfModal').modal('hide');
+            var $btn = $('#btnReset2fa');
+            $btn.prop('disabled', true);
+            $.post(reset2faUrl)
+                .done(function (result) {
+                    if (result.success) {
+                        location.reload();
+                    } else {
+                        $btn.prop('disabled', false);
+                        alert(result.message || 'Failed to reset 2FA.');
+                    }
+                })
+                .fail(function () {
+                    $btn.prop('disabled', false);
+                    alert('An error occurred. Please try again.');
+                });
+        });
+    });
+</script>
+
+    <div id="myModal" class="modal fade" tabindex="-1" aria-labelledby="myModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title" id="myModalLabel">Crop your new profile picture</h4>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <img id="tempImage" src="#" alt="" />
+                </div>
+                <div class="modal-footer">
+                    <a class="btn btn-secondary" data-bs-dismiss="modal">Cancel</a>
+                    <button id="btnSet" type="button" class="btn btn-primary">Set new profile picture</button>
+                </div>
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->

@@ -1,0 +1,56 @@
+
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{BFDF81FF-6AC5-420A-80FF-6DBA6FB1A8AB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MyMonitorHub.Agent.Client", "MyMonitorHub.Agent.Client\MyMonitorHub.Agent.Client.csproj", "{E3BD2B2E-837E-47C5-A5B1-4AA80359BB1F}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{F308367B-1E7D-441E-A9A8-500FC5C6C03B}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{1AEB7AC1-AF22-4EAE-BD01-FFE2E2710ED1}"
+	ProjectSection(SolutionItems) = preProject
+		.nuget\NuGet.Config = .nuget\NuGet.Config
+		.nuget\NuGet.exe = .nuget\NuGet.exe
+		.nuget\NuGet.targets = .nuget\NuGet.targets
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MakaroSoft.mcmProtocol.TestServer", "MakaroSoft.mcmProtocol.TestServer\MakaroSoft.mcmProtocol.TestServer.csproj", "{163E4425-E647-44CE-8958-44C877332210}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Debug|Mixed Platforms = Debug|Mixed Platforms
+		Debug|x86 = Debug|x86
+		Release|Any CPU = Release|Any CPU
+		Release|Mixed Platforms = Release|Mixed Platforms
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E3BD2B2E-837E-47C5-A5B1-4AA80359BB1F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E3BD2B2E-837E-47C5-A5B1-4AA80359BB1F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E3BD2B2E-837E-47C5-A5B1-4AA80359BB1F}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{E3BD2B2E-837E-47C5-A5B1-4AA80359BB1F}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{E3BD2B2E-837E-47C5-A5B1-4AA80359BB1F}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{E3BD2B2E-837E-47C5-A5B1-4AA80359BB1F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E3BD2B2E-837E-47C5-A5B1-4AA80359BB1F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E3BD2B2E-837E-47C5-A5B1-4AA80359BB1F}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{E3BD2B2E-837E-47C5-A5B1-4AA80359BB1F}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{E3BD2B2E-837E-47C5-A5B1-4AA80359BB1F}.Release|x86.ActiveCfg = Release|Any CPU
+		{163E4425-E647-44CE-8958-44C877332210}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{163E4425-E647-44CE-8958-44C877332210}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{163E4425-E647-44CE-8958-44C877332210}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{163E4425-E647-44CE-8958-44C877332210}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{163E4425-E647-44CE-8958-44C877332210}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{163E4425-E647-44CE-8958-44C877332210}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{163E4425-E647-44CE-8958-44C877332210}.Release|Any CPU.Build.0 = Release|Any CPU
+		{163E4425-E647-44CE-8958-44C877332210}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{163E4425-E647-44CE-8958-44C877332210}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{163E4425-E647-44CE-8958-44C877332210}.Release|x86.ActiveCfg = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{163E4425-E647-44CE-8958-44C877332210} = {F308367B-1E7D-441E-A9A8-500FC5C6C03B}
+	EndGlobalSection
+EndGlobal

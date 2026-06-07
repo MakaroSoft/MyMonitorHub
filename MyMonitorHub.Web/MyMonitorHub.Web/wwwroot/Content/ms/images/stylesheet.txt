@@ -1,0 +1,23 @@
+.ms-icon16 {
+    background-image: url('images/spritesheet16.png');
+    background-repeat: no-repeat;
+    width: 16px;
+    height: 16px;
+    display: block;
+}
+
+.ms-icon16-add { background-position: -1px -1px; } 
+.ms-icon16-connected { background-position: -19px -1px; }
+.ms-icon16-contact-new { background-position: -37px -1px; }
+.ms-icon16-disconnected { background-position: -1px -19px; }
+.ms-icon16-dot { background-position: -19px -19px; }
+.ms-icon16-emailed { background-position: -37px -19px; }
+.ms-icon16-fail { background-position: -1px -37px; }
+.ms-icon16-generated { background-position: -19px -37px; }
+.ms-icon16-late { background-position: -37px -37px; }
+.ms-icon16-mediumDot { background-position: -55px -1px; }
+.ms-icon16-notes { background-position: -55px -19px; }
+.ms-icon16-ok { background-position: -55px -37px; }
+.ms-icon16-really-late { background-position: -1px -55px; }
+.ms-icon16-refresh { background-position: -19px -55px; }
+.ms-icon16-style-sends-health { background-position: -37px -55px; }

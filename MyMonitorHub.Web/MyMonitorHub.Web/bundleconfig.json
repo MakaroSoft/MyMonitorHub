@@ -1,0 +1,28 @@
+[
+  {
+    "outputFileName": "Scripts/PageScripts/deviceDetail.min.js",
+    "inputFiles": [
+      "Scripts/PageScripts/deviceDetail.js"
+    ]
+  },
+  {
+    "outputFileName": "Scripts/keys.min.js",
+    "inputFiles": [
+      "Scripts/keys.js"
+    ]
+  },
+  {
+    "outputFileName": "Scripts/Window2/bundle.js",
+    "inputFiles": [
+      "Scripts/Window2/app.js",
+      "Scripts/Window2/terminalTouch.js",
+      "Scripts/Window2/keyboard.js"
+    ]
+  },
+  {
+    "outputFileName": "Scripts/Uploader/MakaroSoft.Uploader.min.js",
+    "inputFiles": [
+      "Scripts/Uploader/MakaroSoft.Uploader.js"
+    ]
+  }
+]

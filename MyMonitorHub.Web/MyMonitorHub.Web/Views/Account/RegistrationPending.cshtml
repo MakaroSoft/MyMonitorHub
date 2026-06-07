@@ -1,0 +1,28 @@
+@{
+    ViewBag.Title = "Check Your Email";
+    ViewBag.SubTitle = "Check Your Email";
+}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-5 col-sm-9 col-11">
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <div class="card-title">Verify Your Email Address</div>
+            </div>
+            <div class="card-body p-4 text-center">
+                <div class="mb-3" style="font-size: 3rem; color: #0d6efd;">&#9993;</div>
+                <h5 class="mb-3">Almost there!</h5>
+                <p class="mb-3">
+                    We have sent a verification email to your address.<br />
+                    Please check your inbox and click the link in the email to complete your registration.
+                </p>
+                <p class="text-muted small mb-4">
+                    The link will expire in 24 hours. If you do not see the email, check your spam or junk folder.
+                </p>
+                <hr />
+                <small>
+                    Already have an account? @Html.ActionLink("Sign in", "LogOn")
+                </small>
+            </div>
+        </div>
+    </div>
+</div>

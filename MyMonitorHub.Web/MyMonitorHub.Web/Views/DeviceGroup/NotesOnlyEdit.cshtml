@@ -1,0 +1,80 @@
+﻿@{
+    Layout = null;
+}
+
+<script type="text/javascript">
+
+    $(document).ready(function () {
+        alert("registering edit buttons");
+        $('.ms-notes-area .save').click(function(event) {
+            var url = '@Url.Action("Save","DeviceGroup",new {id=ViewBag.DeviceGroupId})';
+
+            var data = {
+                id: @ViewBag.DeviceGroupId,
+                notes: $("#notes").val(),
+                contact: $("#contact").val()
+            };
+
+            $.ajax({
+                url: url,
+                type: "POST",
+                data: JSON.stringify(data),
+                contentType: "application/json; charset=utf-8",
+                //dataType: "json", // seems to indicate the return type
+                cache: false,
+                success: function (html) {
+                    $('.ms-notes-area .buttons').off();
+                    $('.ms-notes-area').html(html);
+                },
+                error: function (xhr, ajaxOptions, thrownError) {
+                    alert(thrownError);
+                }
+            });
+        });
+        $('.ms-notes-area .cancel').click(function (event) {
+            event.preventDefault();
+            var url = '@Url.Action("NotesOnly","DeviceGroup",new {id=ViewBag.DeviceGroupId})';
+
+            $.ajax({
+                url: url,
+                type: "GET",
+                cache: false,
+                success: function (html) {
+                    //$('.ms-notes-area .buttons').off();
+                    $('.ms-notes-area').html("");
+                    html.appendTo('.ms-notes-area');
+                    $('.ms-notes-area').html(html);
+                }
+            });
+        });
+    });
+
+</script>
+
+<div class='ms-notes-area'>
+
+        <div style='margin-bottom: 7px;'><a title="Save any changes to the notes" class="btn btn-secondary save buttons" href="#">Save</a> <a title="Cancel any pending changes to the notes" class="btn btn-secondary cancel buttons" href="#">Cancel</a></div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    Notes
+                </div>
+            </div>
+            <div class="card-body">
+                <textarea id="notes" class="form-control" rows="10">@Html.Raw(ViewBag.Notes)</textarea>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    Contact Information
+                </div>
+            </div>
+            <div class="card-body">
+                <textarea id="contact" class="form-control" rows="10">@Html.Raw(ViewBag.ContactInformation)</textarea>
+            </div>
+        </div>
+
+</div>

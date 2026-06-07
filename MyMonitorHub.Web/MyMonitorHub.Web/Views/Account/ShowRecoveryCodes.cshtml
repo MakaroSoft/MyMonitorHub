@@ -1,0 +1,88 @@
+@{
+    ViewBag.Title = "Save Your Recovery Codes";
+    var codes = ViewBag.Codes as List<string> ?? new List<string>();
+    string nextUrl = ViewBag.NextUrl ?? Url.Action("LogOn", "Account");
+}
+
+<div class="container">
+    <main role="main" class="pb-3">
+        <h1>Save Your Recovery Codes</h1>
+        <hr />
+
+        <div class="alert alert-warning d-flex align-items-start gap-3">
+            <i class="bi bi-exclamation-triangle-fill fs-4 flex-shrink-0"></i>
+            <div>
+                <strong>Save these codes now.</strong> They will not be shown again.
+                Each code can be used once to sign in if you ever lose access to your authenticator app.
+                Store them somewhere safe such as a password manager or printed document.
+            </div>
+        </div>
+
+        <div class="card mb-4" style="max-width: 420px;">
+            <div class="card-body">
+                <div class="row row-cols-2 g-2">
+                    @foreach (var code in codes)
+                    {
+                        <div class="col">
+                            <code class="d-block text-center p-2 bg-light border rounded recovery-code">@code</code>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <p>
+            <a href="#" id="copyCodesBtn" class="btn btn-outline-secondary btn-sm me-2">
+                <i class="bi bi-clipboard"></i> Copy all codes
+            </a>
+        </p>
+
+        <a href="@nextUrl" class="btn btn-primary">I have saved these codes &rarr;</a>
+    </main>
+</div>
+
+@section JavaScripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.getElementById('copyCodesBtn').addEventListener('click', function (e) {
+                e.preventDefault();
+
+                var text = Array.from(document.querySelectorAll('.recovery-code'))
+                    .map(function (el) { return el.textContent.trim(); })
+                    .join('\n');
+
+                function markCopied() {
+                    var btn = document.getElementById('copyCodesBtn');
+                    btn.innerHTML = '<i class="bi bi-check-lg"></i> Copied!';
+                    setTimeout(function () {
+                        btn.innerHTML = '<i class="bi bi-clipboard"></i> Copy all codes';
+                    }, 2000);
+                }
+
+                function fallbackCopy(text) {
+                    var ta = document.createElement('textarea');
+                    ta.value = text;
+                    ta.style.position = 'fixed';
+                    ta.style.top = '-9999px';
+                    ta.style.left = '-9999px';
+                    document.body.appendChild(ta);
+                    ta.focus();
+                    ta.select();
+                    try {
+                        var ok = document.execCommand('copy');
+                        if (ok) markCopied();
+                    } catch (err) { }
+                    document.body.removeChild(ta);
+                }
+
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(text).then(markCopied).catch(function () {
+                        fallbackCopy(text);
+                    });
+                } else {
+                    fallbackCopy(text);
+                }
+            });
+        });
+    </script>
+}

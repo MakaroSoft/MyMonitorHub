@@ -1,0 +1,5 @@
+/target/
+/lib/
+
+# Visual Studio IDE files
+.vs/
