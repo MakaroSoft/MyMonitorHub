@@ -138,7 +138,6 @@ public class MonitorHubClient {
                     break;
                 }
                 case "sysInfo":
-                    log.info("sysInfo keyword found");
                     onSysInfo(command, from);
                     break;
                 default:

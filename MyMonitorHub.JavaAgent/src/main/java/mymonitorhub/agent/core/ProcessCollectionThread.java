@@ -136,6 +136,13 @@ public class ProcessCollectionThread implements IThreadShutdown {
             snapshot.add(pac);
         }
 
+        Collections.sort(snapshot, new Comparator<ProcessAndCpu>() {
+            @Override
+            public int compare(ProcessAndCpu a, ProcessAndCpu b) {
+                return Float.compare(b.cpuPercentage, a.cpuPercentage);
+            }
+        });
+
         CollectorData cd = new CollectorData();
         cd.cpus  = cpuPcts;
         cd.top10 = new ArrayList<ProcessAndCpu>(snapshot.subList(0, Math.min(10, snapshot.size())));
@@ -181,7 +188,7 @@ public class ProcessCollectionThread implements IThreadShutdown {
                 ProcessTO pto = new ProcessTO();
                 pto.pid = p.pid;
                 pto.pname = name;
-                pto.cpuPercentage = (float) Math.round(p.cpuPercentage / activeCpuCount * 10) / 10f;
+                pto.cpuPercentage = (float) Math.round(p.cpuPercentage * 10) / 10f;
                 processes.add(pto);
                 collected++;
             }
