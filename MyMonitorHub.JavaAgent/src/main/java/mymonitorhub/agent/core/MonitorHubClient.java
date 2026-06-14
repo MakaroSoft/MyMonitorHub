@@ -11,6 +11,8 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 import ms.VMS;
+import ms.VMSProcess;
+import ms.VMSProcessList;
 import mymonitorhub.agent.common.MonitorProfile.ServiceDefinition;
 
 import java.net.URI;
@@ -155,29 +157,50 @@ public class MonitorHubClient {
                            String serviceName, String action) {
         ServiceDefinition def = findServiceDef(serviceName);
         if (def == null) {
-            log.warn("Rejected service command for unlisted service: {}", serviceName);
+            log.warn("onService> Rejected — '{}' is not in the configured service list.", serviceName);
             sendFailure(toGuid, command,
                     "Service '" + serviceName + "' is not in the configured service list.");
             return;
         }
+        log.debug("onService> action={} service={}", action, serviceName);
         try {
             if ("start".equals(action)) {
-                VMS.Requester("|START_SERVICE|" + serviceName + "|" + def.startCommand);
+                String vmsResult = VMS.Requester("|START_SERVICE|" + serviceName + "|" + def.startCommand);
+                log.debug("onService> VMS START_SERVICE returned: {}", vmsResult);
             } else if ("stop".equals(action)) {
-                VMS.Requester("|STOP_SERVICE|" + serviceName);
+                Integer pid = findPidByName(serviceName);
+                if (pid != null) {
+                    String vmsResult = VMS.Requester("|STOP_SERVICE_BY_PID|" + pid);
+                    log.debug("onService> VMS STOP_SERVICE_BY_PID({}) returned: {}", pid, vmsResult);
+                } else {
+                    log.debug("onService> '{}' not found in process list — already stopped", serviceName);
+                }
             } else {
+                log.warn("onService> Unknown action '{}' for service '{}'", action, serviceName);
                 sendFailure(toGuid, command, "Unknown service action '" + action + "'.");
                 return;
             }
+
+            // Poll up to 20 seconds for the service to reach the expected state,
+            // mirroring C# ServiceController.WaitForStatus(timeout=20s).
+            boolean expectedRunning = "start".equals(action);
             boolean isRunning = VMS.processExists(serviceName);
+            for (int i = 0; i < 20 && isRunning != expectedRunning; i++) {
+                log.debug("onService> waiting for '{}' to {}: isRunning={} (attempt {})",
+                        serviceName, action, isRunning, i + 1);
+                Thread.sleep(1000);
+                isRunning = VMS.processExists(serviceName);
+            }
+
             String statusDesc = isRunning ? "Running" : "Stopped";
+            log.debug("onService> final status for '{}': {}", serviceName, statusDesc);
             Map<String, Object> resp = new HashMap<String, Object>();
             resp.put("Code", code);
             resp.put("Checked", isRunning);
             resp.put("StatusDesc", statusDesc);
             sendSuccess(toGuid, command, resp);
         } catch (Exception e) {
-            log.error(e.getMessage());
+            log.error("onService> error for '{}': {}", serviceName, e.getMessage());
             sendFailure(toGuid, command, e.getMessage());
         }
     }
@@ -278,6 +301,22 @@ public class MonitorHubClient {
     }
 
     // ── Service helpers ────────────────────────────────────────────────────────
+
+    /**
+     * Scans the live process table and returns the PID of the first process
+     * whose name matches serviceName (case-insensitive), or null if not found.
+     */
+    private Integer findPidByName(String serviceName) {
+        VMSProcessList list = new VMSProcessList();
+        VMS.getPidAndCpu(list);
+        for (VMSProcess p : list.getList().values()) {
+            String name = VMS.getProcessName(p.pid);
+            if (serviceName.equalsIgnoreCase(name)) {
+                return p.pid;
+            }
+        }
+        return null;
+    }
 
     private ServiceDefinition findServiceDef(String serviceName) {
         for (ServiceDefinition def : MonitorProfile.getCurrent().getServiceDefinitions()) {
