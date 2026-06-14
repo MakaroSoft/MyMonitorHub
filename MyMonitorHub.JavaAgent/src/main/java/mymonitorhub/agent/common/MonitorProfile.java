@@ -67,12 +67,27 @@ public class MonitorProfile {
 
     // ── Static accessors ───────────────────────────────────────────────────────
 
+    /**
+     * Resolves the config directory in priority order:
+     * 1. MYMONITORHUB_JAVAAGENT_CONFIG_DIR environment variable (explicit override)
+     * 2. ../conf relative to the current working directory
+     */
+    public static String resolveConfigDir() {
+        String envOverride = System.getenv("MYMONITORHUB_JAVAAGENT_CONFIG_DIR");
+        if (envOverride != null && !envOverride.trim().isEmpty()) {
+            return envOverride;
+        }
+
+        try {
+            return new File(System.getProperty("user.dir"), "../conf").getCanonicalPath();
+        } catch (IOException e) {
+            log.warn("Could not resolve ../conf from working directory: {}", e.getMessage());
+            return System.getProperty("user.dir");
+        }
+    }
+
     public static String getMonitorFilePath() {
-        String configDir = System.getenv("MYMONITORHUB_JAVAAGENT_CONFIG_DIR");
-        String dir = (configDir != null && !configDir.trim().isEmpty())
-                ? configDir
-                : System.getProperty("user.dir");
-        return dir + File.separator + MONITOR_FILE_NAME;
+        return resolveConfigDir() + File.separator + MONITOR_FILE_NAME;
     }
 
     public static AgentTokenManager getTokenManager() {
@@ -180,12 +195,7 @@ public class MonitorProfile {
 
     private static void startFileWatcher() {
         try {
-            String configDir = System.getenv("MYMONITORHUB_JAVAAGENT_CONFIG_DIR");
-            String dir = (configDir != null && !configDir.trim().isEmpty())
-                    ? configDir
-                    : System.getProperty("user.dir");
-
-            Path watchPath = Paths.get(dir);
+            Path watchPath = Paths.get(resolveConfigDir());
             watchService = FileSystems.getDefault().newWatchService();
             watchPath.register(watchService, StandardWatchEventKinds.ENTRY_MODIFY);
 
