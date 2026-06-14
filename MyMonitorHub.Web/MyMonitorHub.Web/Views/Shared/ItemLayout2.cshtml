@@ -20,8 +20,19 @@
                     <td></td>
                     @foreach (var header in Model.Headers)
                     {
-                        <td style="vertical-align: bottom; background-color: #f3f6f8;">
-                            <span style="display: inline-block; writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap;">@header</span>
+                        @* Vertical (bottom-to-top) header. Uses transform:rotate instead of
+                           writing-mode because the PDF engine (wkhtmltopdf/old WebKit) ignores
+                           writing-mode. The fixed-size wrapper reserves the rotated text's
+                           footprint so columns stay narrow and rows don't overlap. The fixed
+                           cell width + centered content keeps each header lined up over its
+                           status icon below (wkhtmltopdf doesn't reliably equalize auto-width
+                           columns between the header row and the data rows). *@
+                        <td style="width: 22px; text-align: center; vertical-align: bottom; background-color: #f3f6f8; padding-left: 0; padding-right: 0;">
+                            <div style="display: inline-block; position: relative; width: 16px; height: 80px;">
+                                @* left offset compensates for rotate-around-left-bottom pushing the
+                                   glyphs left of the anchor, so the text centers over the icon below. *@
+                                <span style="position: absolute; bottom: 0; left: 14px; white-space: nowrap; -webkit-transform: rotate(-90deg); -webkit-transform-origin: left bottom; transform: rotate(-90deg); transform-origin: left bottom;">@header</span>
+                            </div>
                         </td>
                     }
 
@@ -69,7 +80,7 @@
 
                     @foreach (var code in device.Codes)
                     {
-                        <td>@Html.Raw(code)</td>
+                        <td style="width: 22px; text-align: center;">@Html.Raw(code)</td>
                     }
                     <td style="width: 100%;">&nbsp;</td>
                 </tr>

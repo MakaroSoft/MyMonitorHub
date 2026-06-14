@@ -62,6 +62,7 @@
     <meta name="csrf-token" content="@AntiforgeryService.GetAndStoreTokens(Context).RequestToken" />
 
     <title>@ViewBag.Title</title>
+    <link rel="icon" href="~/favicon.ico" type="image/x-icon" />
 
     <link href="~/Content/themes/base/jquery-ui.min.css" rel="stylesheet" />
     <link href="~/Content/bootstrap.min.css?v=5.3.3" rel="stylesheet" />
@@ -124,7 +125,7 @@
                                         </li>
 
                                         <li id="summary" class="nav-item">
-                                            <a class="nav-link href="@Url.Content("~/Summary")">
+                                            <a class="nav-link" href="@Url.Content("~/Summary")">
                                                 Alerts <span class="badge bg-secondary">@alertCount</span>
                                             </a>
                                         </li>

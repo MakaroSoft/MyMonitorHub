@@ -201,7 +201,6 @@ try
     // Configure static Helper with IHttpContextAccessor and web root path
     var httpContextAccessor = app.Services.GetRequiredService<IHttpContextAccessor>();
     Helper.Configure(httpContextAccessor, app.Environment.WebRootPath, loggerFactory);
-    Haley.RotateText.ImageGenerator.WebRootPath = app.Environment.WebRootPath;
 
     // Middleware pipeline
     if (!app.Environment.IsDevelopment())

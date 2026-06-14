@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using MyMonitorHub.Domain.BO.Pdf;
 using MyMonitorHub.Domain.BO.Transfer;
 using MyMonitorHub.Domain.Entity;
 using MyMonitorHub.Domain.Interface;

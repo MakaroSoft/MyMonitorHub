@@ -5,7 +5,6 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Mail;
-using MyMonitorHub.Domain.BO.Pdf;
 using MyMonitorHub.Domain.BO.Transfer;
 using MyMonitorHub.Domain.Config;
 using MyMonitorHub.Domain.Entity;
@@ -34,12 +33,12 @@ namespace MyMonitorHub.Domain.Service
         /// in the web layer (ServiceRequestController) so that no unauthenticated HTTP
         /// self-fetches are required.
         /// </summary>
-        public void AlertCustomerRequestIsClosed(string emailList, int serviceRequestId, int accountId, string emailBodyHtml, string pdfHtml)
+        public void AlertCustomerRequestIsClosed(string emailList, int serviceRequestId, int accountId, string emailBodyHtml, string pdfHtml, string pathBase = "")
         {
             string path;
             try
             {
-                path = GenerateSrClosedPdf(serviceRequestId, accountId, pdfHtml);
+                path = GenerateSrClosedPdf(serviceRequestId, accountId, pdfHtml, pathBase);
             }
             catch (Exception e)
             {
@@ -120,10 +119,23 @@ namespace MyMonitorHub.Domain.Service
         /// Prepares HTML for in-process PDF rendering by wkhtmltopdf (NReco).
         /// Rewrites root-relative URLs to relative form and injects a file:// base href
         /// so wkhtmltopdf loads CSS/images directly from disk.
+        /// When the app is hosted as an IIS sub-application, ASP.NET Core tag helpers prepend
+        /// the PathBase (e.g. /mymonitorhub) to every ~/... URL. This method strips that prefix
+        /// before stripping the remaining leading slash so wkhtmltopdf resolves resources
+        /// relative to wwwroot correctly.
         /// </summary>
-        private static string PrepareHtmlForPdf(string html, string rootPath)
+        private static string PrepareHtmlForPdf(string html, string rootPath, string pathBase = "")
         {
             if (string.IsNullOrEmpty(html) || string.IsNullOrEmpty(rootPath)) return html;
+
+            var normalizedBase = pathBase?.Trim('/') ?? string.Empty;
+            if (!string.IsNullOrEmpty(normalizedBase))
+            {
+                html = System.Text.RegularExpressions.Regex.Replace(
+                    html,
+                    $"(?<attr>href|src)=\"/{System.Text.RegularExpressions.Regex.Escape(normalizedBase)}/",
+                    "${attr}=\"");
+            }
 
             html = System.Text.RegularExpressions.Regex.Replace(
                 html,
@@ -136,7 +148,7 @@ namespace MyMonitorHub.Domain.Service
             return html.Insert(idx + "<head>".Length, $"<base href=\"{fileBase}\" />");
         }
 
-        private string GenerateSrClosedPdf(int serviceRequestId, int accountId, string html)
+        private string GenerateSrClosedPdf(int serviceRequestId, int accountId, string html, string pathBase = "")
         {
             try
             {
@@ -163,7 +175,7 @@ namespace MyMonitorHub.Domain.Service
                     "repository" + Path.DirectorySeparatorChar + deviceGroupId + Path.DirectorySeparatorChar +
                     "closedSRs" + Path.DirectorySeparatorChar + "sr" + serviceRequestId + ".pdf");
 
-                var preparedHtml = PrepareHtmlForPdf(html, ThreadStaticHelper.RootPath);
+                var preparedHtml = PrepareHtmlForPdf(html, ThreadStaticHelper.RootPath, pathBase);
                 var htmlToPdf = new HtmlToPdfConverter
                 {
                     CustomWkHtmlArgs = "--enable-local-file-access"

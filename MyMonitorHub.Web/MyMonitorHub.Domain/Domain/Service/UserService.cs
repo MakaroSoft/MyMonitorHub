@@ -54,7 +54,8 @@ namespace MyMonitorHub.Domain.Service
         {
             using (var scope = _contextScopeFactory.Create())
             {
-                return scope.Get<User>().Where(x => x.Email == email).Select(x => x.UserId).FirstOrDefault();
+                var emailLower = email.ToLower();
+                return scope.Get<User>().Where(x => x.Email.ToLower() == emailLower).Select(x => x.UserId).FirstOrDefault();
             }
         }
 

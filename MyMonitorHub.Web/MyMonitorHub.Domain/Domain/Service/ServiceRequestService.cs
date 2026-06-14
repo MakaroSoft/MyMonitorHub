@@ -204,7 +204,13 @@ namespace MyMonitorHub.Domain.Service
                         (scope.Get<ServiceRequest>().Where(
                             x => x.AccountId == account1.accountId && x.Status == "O" && x.AssignedToId == null)).ToList();
 
-                    if (srs.Count == 0) return;
+                    if (srs.Count == 0)
+                    {
+                        _logger.LogDebug("FindTardy: account {0} has no open unassigned SRs, skipping", account.accountId);
+                        continue;
+                    }
+
+                    _logger.LogDebug("FindTardy: account {0} has {1} open unassigned SR(s)", account.accountId, srs.Count);
 
                     // this will bring back a list of users that should be notified and the count of non accepted alerts
                     var users = GetUsersThatNeedToBeNotified(account.accountId, srs,now, account.srNotAcceptedAlertMinutes);
@@ -214,11 +220,12 @@ namespace MyMonitorHub.Domain.Service
 
                     foreach (var user in users)
                     {
+                        _logger.LogDebug("FindTardy: preparing notification for user '{0}' (notAcceptedCount={1})", user.User, user.NotAcceptedCount);
+
                         string body;
                         if (user.NotAcceptedCount == 1)
                         {
                             body = "1 alert not accepted";
-
                         }
                         else
                         {
@@ -228,11 +235,15 @@ namespace MyMonitorHub.Domain.Service
                         var emails = new EmailNotificationService(_dbContextScopeFactory, _loggerFactory).GetEmailsForUser(user.User);
                         if (emails.Count != 0)
                         {
-                            var emailService = new EmailService(_dbContextScopeFactory, _loggerFactory);
                             var allEmails = string.Join(";", emails);
+                            _logger.LogDebug("FindTardy: sending alert email to '{0}' for user '{1}'", allEmails, user.User);
+                            var emailService = new EmailService(_dbContextScopeFactory, _loggerFactory);
                             emailService.SendAway(allEmails, "ADS Alert", null, "Not accepted count = " + user.NotAcceptedCount);
                         }
-                        
+                        else
+                        {
+                            _logger.LogWarning("FindTardy: no delivery addresses found for user '{0}' — alert email NOT sent. Check EmailNotification table entries for this user.", user.User);
+                        }
                     }
 
                 } // foreach account

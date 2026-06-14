@@ -24,18 +24,24 @@
 
     <style>
         /*
-         * Force-disable all table borders/dividers/inset shadows. Bootstrap's .table
-         * applies a 1px bottom border to every cell which most desktop PDF viewers render
-         * as a near-invisible hairline, but some email previews (Fastmail in particular)
-         * render those hairlines as prominent full-cell borders. Stripping them in CSS
-         * means wkhtmltopdf never writes border draw instructions into the PDF, so no
-         * viewer can show them.
+         * This view is rendered to a PDF attachment by wkhtmltopdf (it is NOT the email
+         * body, which is Views/Email/SrClosed.cshtml). We want a light horizontal rule
+         * between rows in each section, matching the legacy report layout. wkhtmltopdf's
+         * WebKit renders Bootstrap's full-cell borders inconsistently, so we collapse
+         * borders and apply a single explicit bottom rule to the section-table cells.
          */
         table, thead, tbody, tfoot, tr, th, td {
-            border: 0 !important;
-            border-collapse: collapse !important;
+            border: 0;
             box-shadow: none !important;
             background-image: none !important;
+        }
+
+        table {
+            border-collapse: collapse !important;
+        }
+
+        .bs-callout table td {
+            border-bottom: 1px solid #cccccc;
         }
 
         .page-header {

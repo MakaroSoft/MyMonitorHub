@@ -126,7 +126,7 @@ namespace MyMonitorHub.Web.Controllers
                     var pdfHtml = await RenderRazorViewToString("~/Views/Reports/ServiceRequest/HtmlFormatOfSrReport.cshtml", srReportModel);
 
                     new EmailService(_contextScopeFactory, _loggerFactory)
-                        .AlertCustomerRequestIsClosed(emails, id, Helper.AccountId, emailBodyHtml, pdfHtml);
+                        .AlertCustomerRequestIsClosed(emails, id, Helper.AccountId, emailBodyHtml, pdfHtml, Request.PathBase.ToString());
                 }
                 catch (Exception e)
                 {

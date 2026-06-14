@@ -106,11 +106,20 @@ namespace MyMonitorHub.Domain.Service
             using (var scope = _contextScopeFactory.Create())
             {
                 var userId = new UserService(_contextScopeFactory).GetUserIdByEmail(email);
+                if (userId == 0)
+                {
+                    _logger.LogWarning("GetEmailsForUser: no User row found for email '{0}' — user does not exist or email case mismatch in User table", email);
+                    return new List<string>();
+                }
                 _logger.LogDebug("GetEmailsForUser> userId = {0}", userId);
                 var results = scope.Get<EmailNotification>().Where(x => x.UserId == userId && x.Disabled != true).Select(x => x.Email).ToList();
+                if (results.Count == 0)
+                {
+                    _logger.LogWarning("GetEmailsForUser: userId {0} ({1}) has no enabled EmailNotification rows — no delivery addresses configured", userId, email);
+                }
                 foreach (var result in results)
                 {
-                    _logger.LogDebug("GetEmailsForUser> email = {0}", result);
+                    _logger.LogDebug("GetEmailsForUser> delivery address = {0}", result);
                 }
                 return results;
             }

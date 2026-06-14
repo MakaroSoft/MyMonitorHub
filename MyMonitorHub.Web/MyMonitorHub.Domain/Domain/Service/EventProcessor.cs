@@ -165,7 +165,7 @@ namespace MyMonitorHub.Domain.Service
             _item.StatusDescription = evt.StatusDescription.Length > 50
                 ? evt.StatusDescription.Substring(0, 50)
                 : evt.StatusDescription;
-            if (_serviceRequest != null) _item.LastServiceRequestId = _serviceRequest.ServiceRequestId;
+            if (_serviceRequest != null) _item.LastServiceRequest = _serviceRequest;
         }
 
         private void WriteToEventLog(Common.WebApi.Event evt, DateTime timestamp, bool forceEventWorthy = false)

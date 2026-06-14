@@ -17,4 +17,9 @@
     <ProjectReference Include="..\MyMonitorHub.Agent.Core\MyMonitorHub.Agent.Core.csproj" />
     <ProjectReference Include="..\MyMonitorHub.Agent.Plugins\MyMonitorHub.Agent.Plugins.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <None Update="version.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 </Project>
