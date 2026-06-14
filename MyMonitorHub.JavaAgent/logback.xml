@@ -6,9 +6,10 @@
     </appender>
 
     <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <immediateFlush>true</immediateFlush>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <!-- Daily rollover; keep 30 days of history -->
-            <fileNamePattern>monitor-%d{yyyy-MM-dd}.log</fileNamePattern>
+            <fileNamePattern>../log/monitor-%d{yyyy-MM-dd}.log</fileNamePattern>
             <maxHistory>30</maxHistory>
         </rollingPolicy>
         <encoder>
