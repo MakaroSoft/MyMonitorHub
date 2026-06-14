@@ -282,12 +282,7 @@ namespace MyMonitorHub.Domain.Service
                 if (string.IsNullOrEmpty(emailList))
                 {
                     emailList = from;
-                    message.Subject = "(NSTC)" + message.Subject;
-                }
-                else
-                {
-                    // for now blind carbon copy me
-                    message.Bcc.Add(new MailAddress(from));
+                    message.Subject = "(No SendTo Configured) " + message.Subject;
                 }
 
                 // add all the email recipients
