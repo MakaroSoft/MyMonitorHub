@@ -28,7 +28,7 @@ public class Monitor {
     private static final Object itemsLock = new Object();
 
     /** Lock used to guard file writes (mainly config) across threads. */
-    public static final Object FILE_WRITE_LOCK = new Object();
+    public static final Object FILE_WRITE_LOCK = MonitorProfile.FILE_WRITE_LOCK;
 
     private static ProcessCollectionThread processCollector;
     private MonitorHubClient monitorHubClient;
