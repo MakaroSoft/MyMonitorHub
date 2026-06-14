@@ -25,10 +25,14 @@ public class MonitorProfile {
     private static final ObjectMapper MAPPER = new ObjectMapper();
     public static final String MONITOR_FILE_NAME = "appsettings.json";
 
+    /** Shared lock that guards all writes to appsettings.json. */
+    public static final Object FILE_WRITE_LOCK = new Object();
+
     private static MonitorProfile current;
     private static AgentTokenManager tokenManager;
     private static final Object lock = new Object();
     private static WatchService watchService;
+    private static boolean internalWrite = false;
 
     // ── Fields ─────────────────────────────────────────────────────────────────
 
@@ -63,12 +67,27 @@ public class MonitorProfile {
 
     // ── Static accessors ───────────────────────────────────────────────────────
 
+    /**
+     * Resolves the config directory in priority order:
+     * 1. MYMONITORHUB_JAVAAGENT_CONFIG_DIR environment variable (explicit override)
+     * 2. ../conf relative to the current working directory
+     */
+    public static String resolveConfigDir() {
+        String envOverride = System.getenv("MYMONITORHUB_JAVAAGENT_CONFIG_DIR");
+        if (envOverride != null && !envOverride.trim().isEmpty()) {
+            return envOverride;
+        }
+
+        try {
+            return new File(System.getProperty("user.dir"), "../conf").getCanonicalPath();
+        } catch (IOException e) {
+            log.warn("Could not resolve ../conf from working directory: {}", e.getMessage());
+            return System.getProperty("user.dir");
+        }
+    }
+
     public static String getMonitorFilePath() {
-        String configDir = System.getenv("MYMONITORHUB_JAVAAGENT_CONFIG_DIR");
-        String dir = (configDir != null && !configDir.trim().isEmpty())
-                ? configDir
-                : System.getProperty("user.dir");
-        return dir + File.separator + MONITOR_FILE_NAME;
+        return resolveConfigDir() + File.separator + MONITOR_FILE_NAME;
     }
 
     public static AgentTokenManager getTokenManager() {
@@ -84,15 +103,21 @@ public class MonitorProfile {
         synchronized (lock) {
             if (current == null) {
                 current = new MonitorProfile();
-                startFileWatcher();
+                if (watchService == null) {
+                    startFileWatcher();
+                }
             }
             return current;
         }
     }
 
-    /** Forces a reload on the next getCurrent() call. */
+    /** Forces a reload on the next getCurrent() call. Ignored for internal writes. */
     public static void invalidate() {
         synchronized (lock) {
+            if (internalWrite) {
+                internalWrite = false;
+                return;
+            }
             current = null;
             log.info(MONITOR_FILE_NAME + " change detected — will reload on next access.");
         }
@@ -156,8 +181,12 @@ public class MonitorProfile {
             JsonNode root = MAPPER.readTree(new File(path));
             ((com.fasterxml.jackson.databind.node.ObjectNode) root.path("server"))
                     .put("refresh-token", refreshToken != null ? refreshToken : "");
-            MAPPER.writerWithDefaultPrettyPrinter().writeValue(new File(path), root);
+            synchronized (FILE_WRITE_LOCK) {
+                synchronized (lock) { internalWrite = true; }
+                MAPPER.writerWithDefaultPrettyPrinter().writeValue(new File(path), root);
+            }
         } catch (IOException e) {
+            synchronized (lock) { internalWrite = false; }
             log.error("Failed to write refresh-token to config: {}", e.getMessage());
         }
     }
@@ -166,12 +195,7 @@ public class MonitorProfile {
 
     private static void startFileWatcher() {
         try {
-            String configDir = System.getenv("MYMONITORHUB_JAVAAGENT_CONFIG_DIR");
-            String dir = (configDir != null && !configDir.trim().isEmpty())
-                    ? configDir
-                    : System.getProperty("user.dir");
-
-            Path watchPath = Paths.get(dir);
+            Path watchPath = Paths.get(resolveConfigDir());
             watchService = FileSystems.getDefault().newWatchService();
             watchPath.register(watchService, StandardWatchEventKinds.ENTRY_MODIFY);
 

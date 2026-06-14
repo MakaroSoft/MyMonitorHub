@@ -70,9 +70,12 @@ class CommandListenerThread implements IThreadShutdown {
                 if (!stopped) {
                     errorCount++;
                     log.error("Command listener error: {}", e.getMessage());
-                    if (errorCount >= 2) {
-                        stopped = true;
-                        break;
+                    if (errorCount >= 5) {
+                        log.error("*** Command listener failed {} consecutive times. Restarting the process.", errorCount);
+                        try { Thread.sleep(2000); } catch (InterruptedException ignored) {}
+                        synchronized (Monitor.FILE_WRITE_LOCK) {
+                            Runtime.getRuntime().halt(1);
+                        }
                     }
                     try { Thread.sleep(10000); } catch (InterruptedException ignored) {}
                 }
