@@ -7,6 +7,7 @@
 
 @section Styles
 {
+    <link href="~/Content/showLoading.css" rel="stylesheet" />
     <style>
         .ms-notes-area td {
             padding-left: 10px;
@@ -17,6 +18,7 @@
 
 @section JavaScripts {
 
+    <script src="~/Scripts/jquery.showLoading.js"></script>
     <script src="~/Scripts/MakaroSoft.WebSocket.js"></script>
     <script src="~/Scripts/MakaroSoft.BrowserIdentifier.js"></script>
 
@@ -38,9 +40,40 @@
             $(document).on('click', 'a.reset-device', function (e) {
                 e.preventDefault();
                 var deviceId = $(this).data('device-id');
-                var deviceName = $(this).data('device-name');
                 $('#resetDeviceModal').data('device-id', deviceId);
                 $('#resetDeviceModal').modal('show');
+            });
+
+            $('#resetDeviceClearBtn').on('click', function () {
+                var deviceId = $('#resetDeviceModal').data('device-id');
+                $('#resetDeviceModal').modal('hide');
+                $('#pageDetailCardBody').showLoading();
+                $.ajax({
+                    url: '@Url.Action("ResetItems", "Device")/' + deviceId,
+                    type: 'POST',
+                    contentType: 'application/json; charset=utf-8',
+                    cache: false,
+                    success: function (result) {
+                        $('#pageDetailCardBody').hideLoading();
+                        if (result.status === 'Success') {
+                            var row = $('tr.deviceRow[data-id="' + deviceId + '"]');
+                            row.find('span.ms-icon16:not(.connectIcon)').each(function () {
+                                var $span = $(this);
+                                $span.attr('class', 'ms-icon16 ms-icon16-dot');
+                                if ($span.parent().is('a')) {
+                                    $span.unwrap();
+                                }
+                            });
+                            displayMessage('Device items have been successfully reset.', 'success');
+                        } else {
+                            displayMessage(result.reason || 'An error occurred while resetting device items.', 'fail');
+                        }
+                    },
+                    error: function () {
+                        $('#pageDetailCardBody').hideLoading();
+                        displayMessage('An error occurred while resetting device items.', 'fail');
+                    }
+                });
             });
 
             webSocket = new MakaroSoft.WebSocket(where, ticket);
@@ -81,7 +114,7 @@
 
         </div>
     </div>
-    <div class="card-body">
+    <div class="card-body" id="pageDetailCardBody">
         @await Html.PartialAsync("ItemLayout")
     </div>
 </div>
@@ -99,7 +132,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="resetDeviceClearBtn">Clear</button>
+                <button type="button" class="btn btn-primary" id="resetDeviceClearBtn">Reset</button>
             </div>
         </div>
     </div>
