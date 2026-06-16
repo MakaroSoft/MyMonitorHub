@@ -273,5 +273,20 @@ namespace MyMonitorHub.Domain.Service
                                                     x.SubCategoryName == "ADS").Select(x => x.ItemId).FirstOrDefault();
             }
         }
+
+        public void ResetItems(int accountId, int deviceId)
+        {
+            using (var scope = _contextScopeFactory.Create())
+            {
+                var items = scope.Get<Item>()
+                    .Where(x => x.AccountId == accountId && x.DeviceId == deviceId)
+                    .ToList();
+                foreach (var item in items)
+                {
+                    scope.Delete(item);
+                }
+                scope.SaveChanges();
+            }
+        }
     } // class
 }
