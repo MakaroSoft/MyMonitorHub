@@ -378,7 +378,8 @@ BEGIN
         [ItemId]     INT            NOT NULL,
         [Timestamp]  DATETIME2      NOT NULL,
         [JsonData]   NVARCHAR(MAX)  NULL,
-        CONSTRAINT [PK_CpuUsage] PRIMARY KEY ([CpuUsageId])
+        CONSTRAINT [PK_CpuUsage] PRIMARY KEY ([CpuUsageId]),
+        CONSTRAINT [FK_CpuUsage_Item] FOREIGN KEY ([ItemId]) REFERENCES [Item] ([ItemId])
     );
 END
 
@@ -396,7 +397,8 @@ BEGIN
         [MinUsedMB]   BIGINT     NULL,
         [MaxUsedMB]   BIGINT     NULL,
         [AvgUsedMB]   BIGINT     NULL,
-        CONSTRAINT [PK_DiskUsage] PRIMARY KEY ([DiskUsageId])
+        CONSTRAINT [PK_DiskUsage] PRIMARY KEY ([DiskUsageId]),
+        CONSTRAINT [FK_DiskUsage_Item] FOREIGN KEY ([ItemId]) REFERENCES [Item] ([ItemId])
     );
 END
 
@@ -413,7 +415,8 @@ BEGIN
         [MinSpeedMS]  INT        NULL,
         [MaxSpeedMS]  INT        NULL,
         [AvgSpeedMS]  INT        NULL,
-        CONSTRAINT [PK_UrlSpeed] PRIMARY KEY ([UrlSpeedId])
+        CONSTRAINT [PK_UrlSpeed] PRIMARY KEY ([UrlSpeedId]),
+        CONSTRAINT [FK_UrlSpeed_Item] FOREIGN KEY ([ItemId]) REFERENCES [Item] ([ItemId])
     );
 END
 
@@ -427,7 +430,8 @@ BEGIN
         [ItemId]        INT        NOT NULL,
         [Timestamp]     DATETIME2  NOT NULL,
         [NewErrorCount] INT        NULL,
-        CONSTRAINT [PK_Error] PRIMARY KEY ([ErrorId])
+        CONSTRAINT [PK_Error] PRIMARY KEY ([ErrorId]),
+        CONSTRAINT [FK_Error_Item] FOREIGN KEY ([ItemId]) REFERENCES [Item] ([ItemId])
     );
 END
 

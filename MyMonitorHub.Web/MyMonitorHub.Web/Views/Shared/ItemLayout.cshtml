@@ -5,9 +5,6 @@
 @using MyMonitorHub.Web;
 
 @model MyMonitorHub.Domain.Models.ItemLayoutView
-@{
-    var canEditDevice = Authorizer.Authorize(Permissions.CanEditDeviceMaint);
-}
 <div class="table-responsive">
     <table class="table table-sm">
         @{
@@ -28,23 +25,20 @@
                             <span style="display: inline-block; writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap;">@header</span>
                         </td>
                     }
-                    @if (canEditDevice)
-                    {
-                        <td></td>
-                    }
+
                     <td style="width: 100%;">&nbsp;</td>
                 </tr>
             }
             else
             {
                 <tr>
-                    <td colspan="@(Model.Headers.Count + 3 + (canEditDevice ? 1 : 0))" style="white-space: nowrap;">&nbsp;</td>
+                    <td colspan="@(Model.Headers.Count + 3)" style="white-space: nowrap;">&nbsp;</td>
                 </tr>
             }
             breakupCount++;
 
             <tr class="table-active fw-bold">
-                <td colspan="@(Model.Headers.Count + 3 + (canEditDevice ? 1 : 0))" style="white-space: nowrap;">
+                <td colspan="@(Model.Headers.Count + 3)" style="white-space: nowrap;">
                     <a name="@dg.DeviceGroupId"></a>
                     @dg.Description
                     @if (Authorizer.Authorize(Permissions.CanViewNotes))
@@ -77,12 +71,6 @@
                     @foreach (var code in device.Codes)
                     {
                         <td>@Html.Raw(code)</td>
-                    }
-                    @if (canEditDevice)
-                    {
-                        <td style="white-space: nowrap; padding-left: 10px;">
-                            <a href="#" class="reset-device" data-device-id="@device.DeviceId" data-device-name="@device.Description" title="Clear out the current device&#39;s item status">Reset</a>
-                        </td>
                     }
                     <td style="width: 100%;">&nbsp;</td>
                 </tr>
