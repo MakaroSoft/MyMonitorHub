@@ -49,23 +49,6 @@ namespace MyMonitorHub.Web.Controllers
             }
         }
 
-        [HttpPost]
-        public JsonResult ResetItems(int id)
-        {
-            if (!Authorizer.Authorize(Permissions.CanEditDeviceMaint))
-                throw new SecurityException(Permissions.CanEditDeviceMaint.FailMessage);
-            try
-            {
-                new ItemService(_contextScopeFactory).ResetItems(Helper.AccountId, id);
-                return Json(new { Status = "Success", Response = "Successfully reset device items", DeviceId = id });
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e, "Reset items for device {DeviceId} failed", id);
-                return Json(new { Status = "Fail", Reason = "An error occurred while resetting device items." });
-            }
-        }
-
         public IActionResult Edit(int id = -1, int deviceGroupId = -1)
         {
             if (!Authorizer.Authorize(Permissions.CanViewDeviceMaint))
