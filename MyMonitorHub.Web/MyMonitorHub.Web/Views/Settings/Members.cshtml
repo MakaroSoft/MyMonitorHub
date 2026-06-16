@@ -261,9 +261,29 @@
                                             @member.RoleRoleCode
                                         }
                                     </td>
-                                    <td class="d-none d-sm-table-cell d-none d-md-table-cell"><a href="@Url.Action("AlertMaintenance","Settings", new {id = member.UserUserId})">@member.SendAlertsTo</a></td>
+                                    <td class="d-none d-sm-table-cell d-none d-md-table-cell">
+                                        @if (canEditRoles || member.UserUserId == currentUserId)
+                                        {
+                                            <a href="@Url.Action("AlertMaintenance","Settings", new {id = member.UserUserId})">@member.SendAlertsTo</a>
+                                        }
+                                        else
+                                        {
+                                            @member.SendAlertsTo
+                                        }
+                                    </td>
                                     <td class="d-none d-sm-table-cell" style="white-space: nowrap;">
-                                        @if (canEditRoles && member.UserUserId != currentUserId)
+                                        @if (member.UserUserId == currentUserId)
+                                        {
+                                            @if (member.UserTwoFactorEnabled == true)
+                                            {
+                                                <button class="btn btn-outline-warning btn-sm btn-reset-2fa me-1"
+                                                        style="white-space: nowrap;"
+                                                        data-user-id="@member.UserUserId"
+                                                        data-member-email="@member.UserEmail"
+                                                        title="Reset two-factor authentication">Reset 2FA</button>
+                                            }
+                                        }
+                                        else if (canEditRoles)
                                         {
                                             @if (member.UserTwoFactorEnabled == true)
                                             {

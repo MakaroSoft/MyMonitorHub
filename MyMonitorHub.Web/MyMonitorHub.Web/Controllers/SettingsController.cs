@@ -156,11 +156,10 @@ namespace MyMonitorHub.Web.Controllers
         [HttpPost]
         public IActionResult Reset2Fa(int userId)
         {
-            if (!Helper.IsOwner && !Helper.IsAdministrator)
-                return Json(new { success = false, message = "You do not have permission to reset 2FA." });
+            bool isSelf = userId == Helper.UserId;
 
-            if (userId == Helper.UserId)
-                return Json(new { success = false, message = "You cannot reset your own 2FA from this page." });
+            if (!isSelf && !Helper.IsOwner && !Helper.IsAdministrator)
+                return Json(new { success = false, message = "You do not have permission to reset 2FA." });
 
             bool isMember;
             using (var scope = _contextScopeFactory.Create())
