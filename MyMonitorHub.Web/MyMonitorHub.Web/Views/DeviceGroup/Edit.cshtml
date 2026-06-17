@@ -297,7 +297,7 @@
                 </div>
 
                 <div class="col-lg-6">
-                    <legend class="mb-3">Notes</legend>
+                    <legend class="mb-3">Notes (Markdown preview)</legend>
                     <div class="border rounded p-2" style="min-height: 200px;">
                         <div class="ms-notes-area" id="notesMD">@Html.Raw(ViewBag.notesMd)</div>
                     </div>
@@ -496,8 +496,8 @@
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
+                <h4 class="modal-title" id="notesModalLabel">Edit Notes (Markdown accepted)</h4>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                <h4 class="modal-title" id="notesModalLabel">View Notes</h4>
             </div>
             <div class="modal-body">
                 <textarea style='font-family: "Courier New", Courier, monospace;' rows="11" class="form-control" id="notesId" name="NotesId" type="text" @disable></textarea>
