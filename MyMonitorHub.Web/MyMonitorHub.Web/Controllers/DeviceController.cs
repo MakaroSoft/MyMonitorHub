@@ -60,8 +60,28 @@ namespace MyMonitorHub.Web.Controllers
             else
                 data.ApiKey = null; // never send the stored key to the browser
 
+            if (id != -1)
+                data.ItemGroups = new DeviceService(_contextScopeFactory, _loggerFactory).GetItemGroups(id, Helper.AccountId);
+
             ViewBag.notesMd = MarkdownHelper.ToHtml(data.Notes);
             return View(data);
+        }
+
+        [HttpPost]
+        public JsonResult DeleteItem(int id)
+        {
+            if (!Authorizer.Authorize(Permissions.CanEditDeviceMaint))
+                throw new SecurityException(Permissions.CanEditDeviceMaint.FailMessage);
+            try
+            {
+                new ItemService(_contextScopeFactory).DeleteItem(Helper.AccountId, id);
+                return Json(new { Status = "Success" });
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Delete item {ItemId} failed", id);
+                return Json(new { Status = "Fail", Reason = "An error occurred while deleting the item." });
+            }
         }
 
         [HttpPost]

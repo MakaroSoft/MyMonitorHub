@@ -273,5 +273,18 @@ namespace MyMonitorHub.Domain.Service
                                                     x.SubCategoryName == "ADS").Select(x => x.ItemId).FirstOrDefault();
             }
         }
+
+        public void DeleteItem(int accountId, int itemId)
+        {
+            using (var scope = _contextScopeFactory.Create())
+            {
+                var item = scope.Get<Item>()
+                    .FirstOrDefault(x => x.AccountId == accountId && x.ItemId == itemId);
+                if (item == null)
+                    throw new Exception("Item not found - " + itemId);
+                scope.Delete(item);
+                scope.SaveChanges();
+            }
+        }
     } // class
 }

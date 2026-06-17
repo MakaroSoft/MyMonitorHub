@@ -32,6 +32,7 @@ namespace MyMonitorHub.Domain.Models
 
     public class DeviceLayoutModelItem
     {
+        public int ItemId;
         public bool ConstantlyReportsIn;
         public string Description;
         public int Status;

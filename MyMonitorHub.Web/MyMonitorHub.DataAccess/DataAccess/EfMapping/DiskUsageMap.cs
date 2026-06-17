@@ -25,7 +25,8 @@ namespace MyMonitorHub.DataAccess.EfMapping
             // Relationships
             builder.HasOne(t => t.Item)
                 .WithMany(t => t.DiskUsages)
-                .HasForeignKey(d => d.ItemId);
+                .HasForeignKey(d => d.ItemId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

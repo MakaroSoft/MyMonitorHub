@@ -164,6 +164,7 @@ namespace MyMonitorHub.Domain.Service
                         Description = g.Key.Description,
                         Items = g.Select(a => new DeviceLayoutModelItem
                         {
+                            ItemId = a.ItemId,
                             Timestamp = a.TimeStamp,
                             Description = a.Description,
                             Status = a.Status,
@@ -556,6 +557,30 @@ namespace MyMonitorHub.Domain.Service
                 var device = scope.Get<Device>().Where(x => x.DeviceId == deviceId).Select(x => x).First();
                 device.ConfigXml = configXml;
                 scope.SaveChanges();
+            }
+        }
+
+        public IEnumerable<DeviceLayoutModelItemGroup> GetItemGroups(int deviceId, int accountId)
+        {
+            using (var scope = _dbContextScopeFactory.Create())
+            {
+                var groups = (from i in scope.Get<Item>().Where(x => x.DeviceId == deviceId && x.AccountId == accountId)
+                    group i by new { i.CategoryId, Description = i.Category.Description + "> " + i.SubCategoryName }
+                    into g
+                    select new DeviceLayoutModelItemGroup
+                    {
+                        Description = g.Key.Description,
+                        Items = g.Select(a => new DeviceLayoutModelItem
+                        {
+                            ItemId = a.ItemId,
+                            Timestamp = a.TimeStamp,
+                            Description = a.Description,
+                            Status = a.Status,
+                            ConstantlyReportsIn = a.ConstantlyReportsInYN,
+                            StatusDescription = a.StatusDescription
+                        }).ToList()
+                    }).ToList();
+                return groups;
             }
         }
     }
