@@ -31,6 +31,7 @@ namespace MyMonitorHub.Agent.Common
         private JObject _config;
 
         public const string MonitorFileName = "appsettings.json";
+        public const string TokenFileName = "refresh-token.dat";
 
         /// <summary>
         /// Returns the full path to appsettings.json.
@@ -52,6 +53,11 @@ namespace MyMonitorHub.Agent.Common
                     : AppContext.BaseDirectory;
                 return Path.Combine(dir, MonitorFileName);
             }
+        }
+
+        public static string TokenFilePath
+        {
+            get { return Path.Combine(Path.GetDirectoryName(MonitorFilePath)!, TokenFileName); }
         }
 
         public static MonitorProfile Current 
@@ -304,17 +310,41 @@ namespace MyMonitorHub.Agent.Common
                 }
             }
 
-            var protectedToken = server?["refresh-token-protected"]?.ToString();
-            if (!string.IsNullOrEmpty(protectedToken))
+            // Refresh token lives in its own file so a crash during write can never corrupt appsettings.json.
+            var tokenFilePath = TokenFilePath;
+            if (File.Exists(tokenFilePath))
             {
-                try
+                var protectedToken = File.ReadAllText(tokenFilePath).Trim();
+                if (!string.IsNullOrEmpty(protectedToken))
                 {
-                    _refreshToken = AgentSecretProtector.Unprotect(protectedToken);
+                    try
+                    {
+                        _refreshToken = AgentSecretProtector.Unprotect(protectedToken);
+                    }
+                    catch (AgentSecretProtectionException ex)
+                    {
+                        Logger.Warning(ex, "MonitorProfile: could not decrypt {TokenFile} — treating as unconfigured.", TokenFileName);
+                        _refreshToken = null;
+                    }
                 }
-                catch (AgentSecretProtectionException ex)
+            }
+            else
+            {
+                // One-time migration: if the legacy appsettings.json field is present, move it to the token file.
+                var protectedToken = server?["refresh-token-protected"]?.ToString();
+                if (!string.IsNullOrEmpty(protectedToken))
                 {
-                    Logger.Warning(ex, "MonitorProfile: could not decrypt refresh-token-protected — treating as unconfigured.");
-                    _refreshToken = null;
+                    try
+                    {
+                        _refreshToken = AgentSecretProtector.Unprotect(protectedToken);
+                        Logger.Information("MonitorProfile: migrating refresh token from appsettings.json to {TokenFile}.", TokenFileName);
+                        WriteTokenFile(protectedToken);
+                    }
+                    catch (AgentSecretProtectionException ex)
+                    {
+                        Logger.Warning(ex, "MonitorProfile: could not decrypt legacy refresh-token-protected — treating as unconfigured.");
+                        _refreshToken = null;
+                    }
                 }
             }
 
@@ -365,26 +395,37 @@ namespace MyMonitorHub.Agent.Common
             Changed = false;
         }
 
+        /// <summary>
+        /// Persists the current refresh token to its dedicated file using an atomic
+        /// write (temp file + rename) so a crash mid-write can never produce an empty file.
+        /// </summary>
         public void WriteRefreshToken()
         {
-            WriteJson();
+            if (string.IsNullOrEmpty(_refreshToken))
+                return;
+            var protectedToken = AgentSecretProtector.Protect(_refreshToken);
+            WriteTokenFile(protectedToken);
+            _refreshTokenDirty = false;
+        }
+
+        /// <summary>
+        /// Atomically writes an already-encrypted token value to <see cref="TokenFilePath"/>.
+        /// Writes to a .tmp file first then renames, so the target is never left empty on crash.
+        /// </summary>
+        private static void WriteTokenFile(string protectedToken)
+        {
+            var tmp = TokenFilePath + ".tmp";
+            File.WriteAllText(tmp, protectedToken);
+            File.Move(tmp, TokenFilePath, overwrite: true);
         }
 
         public void WriteJson()
         {
             var server = _config["server"] as JObject;
-            if (server != null)
+            if (server != null && _apiKeyDirty && !string.IsNullOrEmpty(_apiKey))
             {
-                if (_apiKeyDirty && !string.IsNullOrEmpty(_apiKey))
-                {
-                    server["api-key-protected"] = AgentSecretProtector.Protect(_apiKey);
-                    _apiKeyDirty = false;
-                }
-                if (_refreshTokenDirty && !string.IsNullOrEmpty(_refreshToken))
-                {
-                    server["refresh-token-protected"] = AgentSecretProtector.Protect(_refreshToken);
-                    _refreshTokenDirty = false;
-                }
+                server["api-key-protected"] = AgentSecretProtector.Protect(_apiKey);
+                _apiKeyDirty = false;
             }
 
             File.WriteAllText(MonitorFilePath, _config.ToString(Formatting.Indented));

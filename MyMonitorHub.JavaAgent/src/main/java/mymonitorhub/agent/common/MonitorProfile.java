@@ -24,6 +24,7 @@ public class MonitorProfile {
     private static final Logger log = LoggerFactory.getLogger(MonitorProfile.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
     public static final String MONITOR_FILE_NAME = "appsettings.json";
+    public static final String TOKEN_FILE_NAME = "refresh-token.dat";
 
     /** Shared lock that guards all writes to appsettings.json. */
     public static final Object FILE_WRITE_LOCK = new Object();
@@ -90,6 +91,10 @@ public class MonitorProfile {
         return resolveConfigDir() + File.separator + MONITOR_FILE_NAME;
     }
 
+    public static String getTokenFilePath() {
+        return resolveConfigDir() + File.separator + TOKEN_FILE_NAME;
+    }
+
     public static AgentTokenManager getTokenManager() {
         synchronized (lock) {
             if (tokenManager == null) {
@@ -142,7 +147,28 @@ public class MonitorProfile {
         accountId  = server.path("account-id").asInt(0);
         deviceId   = server.path("device-id").asInt(0);
         apiKey     = server.path("api-key").asText(null);
-        refreshToken = server.path("refresh-token").asText(null);
+
+        // Refresh token lives in its own file so a crash during write can never corrupt appsettings.json.
+        File tokenFile = new File(getTokenFilePath());
+        if (tokenFile.exists()) {
+            try {
+                String stored = new String(Files.readAllBytes(tokenFile.toPath())).trim();
+                refreshToken = stored.isEmpty() ? null : stored;
+            } catch (IOException e) {
+                log.warn("Could not read {}: {}", TOKEN_FILE_NAME, e.getMessage());
+                refreshToken = null;
+            }
+        } else {
+            // One-time migration: if the legacy appsettings.json field is present, move it to the token file.
+            String legacy = server.path("refresh-token").asText(null);
+            if (legacy != null && !legacy.isEmpty()) {
+                refreshToken = legacy;
+                log.info("MonitorProfile: migrating refresh token from appsettings.json to {}.", TOKEN_FILE_NAME);
+                writeTokenFile(legacy);
+            } else {
+                refreshToken = null;
+            }
+        }
         commandPort = server.path("command-port").asInt(6800);
         reconnectAttemptMinutes = server.path("reconnect-attempt-minutes").asInt(45);
         accountName = server.path("account-name").asText(null);
@@ -174,20 +200,27 @@ public class MonitorProfile {
         }
     }
 
-    /** Persists the current refresh-token back to appsettings.json. */
+    /**
+     * Persists the current refresh token to its dedicated file using an atomic
+     * write (temp file + rename) so a crash mid-write can never produce an empty file.
+     */
     public void writeRefreshToken() {
-        String path = getMonitorFilePath();
+        if (refreshToken == null || refreshToken.isEmpty()) return;
+        writeTokenFile(refreshToken);
+    }
+
+    /**
+     * Atomically writes {@code token} to {@link #TOKEN_FILE_NAME} in the config directory.
+     * Writes to a .tmp file first then renames so the target is never left empty on crash.
+     */
+    private static void writeTokenFile(String token) {
+        Path target = Paths.get(getTokenFilePath());
+        Path tmp    = Paths.get(getTokenFilePath() + ".tmp");
         try {
-            JsonNode root = MAPPER.readTree(new File(path));
-            ((com.fasterxml.jackson.databind.node.ObjectNode) root.path("server"))
-                    .put("refresh-token", refreshToken != null ? refreshToken : "");
-            synchronized (FILE_WRITE_LOCK) {
-                synchronized (lock) { internalWrite = true; }
-                MAPPER.writerWithDefaultPrettyPrinter().writeValue(new File(path), root);
-            }
+            Files.write(tmp, token.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
         } catch (IOException e) {
-            synchronized (lock) { internalWrite = false; }
-            log.error("Failed to write refresh-token to config: {}", e.getMessage());
+            log.error("Failed to write {} : {}", TOKEN_FILE_NAME, e.getMessage());
         }
     }
 
