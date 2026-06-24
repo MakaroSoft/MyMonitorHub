@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using MyMonitorHub.Domain.Entity;
@@ -108,11 +109,12 @@ namespace MyMonitorHub.Domain.BO
 
                 try
                 {
-                    var ownerEmail = GetOwnerEmail();
-                    if (ownerEmail != null)
+                    var ownerEmails = GetOwnerEmails();
+                    if (ownerEmails.Count > 0)
                     {
                         var emailer = new Emailer(_contextScopeFactory!, _loggerFactory!);
-                        emailer.SendDirect(ownerEmail, "Failure in findTardy", ex1.Message);
+                        foreach (var ownerEmail in ownerEmails)
+                            emailer.SendDirect(ownerEmail, "Failure in findTardy", ex1.Message);
                     }
                 }
                 catch (Exception ex2)
@@ -122,20 +124,20 @@ namespace MyMonitorHub.Domain.BO
             }
         }
 
-        private static string? GetOwnerEmail()
+        private static List<string> GetOwnerEmails()
         {
             if (_contextScopeFactory == null || _configuration == null)
-                return null;
+                return [];
 
             var ownerOrgId = _configuration.GetValue<int>("App:OwnerOrganizationId");
             if (ownerOrgId == 0)
-                return null;
+                return [];
 
             using var scope = _contextScopeFactory.Create();
             return scope.Get<Member>()
                 .Where(m => m.OrganizationId == ownerOrgId && m.Role.RoleCode == "Owner")
                 .Select(m => m.User.Email)
-                .FirstOrDefault();
+                .ToList();
         }
 
     } // class
