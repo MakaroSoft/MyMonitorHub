@@ -29,8 +29,8 @@ namespace MyMonitorHub.Domain.Service
         private class DiskColumns
         {
             public DateTime Timestamp { get; set; }
-            public int DiskSize { get; set; }
-            public int CurUsedMB { get; set; }
+            public long DiskSize { get; set; }
+            public long CurUsedMB { get; set; }
         }
 
         public Stream RenderGraph(int itemId, string report)
@@ -174,7 +174,7 @@ namespace MyMonitorHub.Domain.Service
             }
             var detail = GetData(itemId, startDate);
 
-            var diskSize = 0;
+            long diskSize = 0;
 
             var halfHours = new double[48];
             foreach (var diskUsage in detail)
@@ -307,8 +307,7 @@ namespace MyMonitorHub.Domain.Service
 
             var detail = GetData(itemId, startDate, endDate);
 
-
-            var diskSize = 0;
+            long diskSize = 0;
 
             var sixHours = new double[28];
             foreach (var diskUsage in detail)
@@ -428,7 +427,7 @@ namespace MyMonitorHub.Domain.Service
 
             var detail = GetData(itemId, startDate, endDate);
 
-            var diskSize = 0;
+            long diskSize = 0;
 
             var days = new double[daysInMonth];
             foreach (var diskUsage in detail)
