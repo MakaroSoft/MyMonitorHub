@@ -238,7 +238,9 @@ namespace MyMonitorHub.Domain.Service
                             var allEmails = string.Join(";", emails);
                             _logger.LogDebug("FindTardy: sending alert email to '{0}' for user '{1}'", allEmails, user.User);
                             var emailService = new EmailService(_dbContextScopeFactory, _loggerFactory);
-                            emailService.SendAway(allEmails, "ADS Alert", null, "Not accepted count = " + user.NotAcceptedCount);
+                            var summaryUrl = ThreadStaticHelper.RootUrl + "Summary";
+                            var htmlBody = $"{body}<br><br><a href=\"{summaryUrl}\">View Alerts</a>";
+                            emailService.SendAway(allEmails, "ADS Alert", null, htmlBody);
                         }
                         else
                         {

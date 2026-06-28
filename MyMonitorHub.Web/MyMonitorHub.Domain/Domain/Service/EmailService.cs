@@ -85,10 +85,6 @@ namespace MyMonitorHub.Domain.Service
                         emailList = OutgoingEmailConfig.From;
                         message.Subject = "(NSTC)" + message.Subject;
                     }
-                    else
-                    {
-                        message.Bcc.Add(new MailAddress(OutgoingEmailConfig.From));
-                    }
 
                     var emails = emailList.Split(new[] {';'});
                     foreach (var email in emails)
