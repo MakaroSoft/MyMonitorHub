@@ -2,6 +2,7 @@ using MyMonitorHub.Agent.Common;
 using Serilog;
 using System;
 using System.Diagnostics;
+using System.Linq.Expressions;
 using System.Management;
 using System.Security.Authentication;
 using System.ServiceProcess;
@@ -218,10 +219,10 @@ namespace MyMonitorHub.Agent.Core
                                 process.Kill();
                                 process.WaitForExit(10000);
                             }
-                            catch
+                            catch (Exception ex)
                             {
                                 // Process may already be gone or access may be denied
-                                Logger.Error("Failed to kill process with ID {0} for service '{1}'", processId, serviceName);
+                                Logger.Error("Failed to kill process with ID {0} for service '{1}' - {2}", processId, serviceName, ex.Message);
                             }
                         }
                     }
