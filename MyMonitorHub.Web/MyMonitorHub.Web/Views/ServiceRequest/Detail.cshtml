@@ -152,6 +152,12 @@
                 </div>
             </div>
             <div class="row mb-3">
+                @Html.LabelFor(m => m.UserName, new { @class = "col-sm-3 col-form-label text-sm-end fw-bold" })
+                <div class="col-sm-9">
+                    <p id="assignedTo" class="form-control-plaintext mb-0">@Model.UserName</p>
+                </div>
+            </div>
+            <div class="row mb-3">
                 @Html.LabelFor(m => m.TimeStamp, new { @class = "col-sm-3 col-form-label text-sm-end fw-bold" })
                 <div class="col-sm-9">
                     <p class="form-control-plaintext mb-0">@Model.TimeStamp</p>
