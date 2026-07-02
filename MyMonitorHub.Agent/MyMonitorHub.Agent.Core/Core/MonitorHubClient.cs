@@ -1,10 +1,12 @@
+using MyMonitorHub.Agent.Common;
+using Serilog;
 using System;
+using System.Diagnostics;
+using System.Management;
 using System.Security.Authentication;
 using System.ServiceProcess;
 using System.Text.Json;
 using System.Threading;
-using MyMonitorHub.Agent.Common;
-using Serilog;
 
 namespace MyMonitorHub.Agent.Core
 {
@@ -198,6 +200,7 @@ namespace MyMonitorHub.Agent.Core
                 else if (action == "stop")
                 {
                     var timeout = TimeSpan.FromMilliseconds(20000);
+                    int processId = GetServiceProcessId(serviceName);
                     controller.Stop();
                     try
                     {
@@ -205,6 +208,22 @@ namespace MyMonitorHub.Agent.Core
                     }
                     catch (System.ServiceProcess.TimeoutException)
                     {
+                        Logger.Warning("Service '{0}', ProcessId {1}, did not stop within the timeout period. Attempting to kill the process.", 
+                            serviceName, processId);
+                        if (processId > 0)
+                        {
+                            try
+                            {
+                                var process = Process.GetProcessById(processId);
+                                process.Kill();
+                                process.WaitForExit(10000);
+                            }
+                            catch
+                            {
+                                // Process may already be gone or access may be denied
+                                Logger.Error("Failed to kill process with ID {0} for service '{1}'", processId, serviceName);
+                            }
+                        }
                     }
                 }
                 else
@@ -224,6 +243,19 @@ namespace MyMonitorHub.Agent.Core
                 Logger.Error(e.Message);
                 SendFailure(toGuid, command, e.Message);
             }
+        }
+
+        private static int GetServiceProcessId(string serviceName)
+        {
+            using var searcher = new ManagementObjectSearcher(
+                $"SELECT ProcessId FROM Win32_Service WHERE Name = '{serviceName}'");
+
+            foreach (ManagementObject obj in searcher.Get())
+            {
+                return Convert.ToInt32(obj["ProcessId"]);
+            }
+
+            return 0;
         }
 
         private void OnServices(string command, string toGuid, string code)
