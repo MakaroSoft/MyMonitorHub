@@ -224,6 +224,7 @@ namespace MyMonitorHub.Agent.Core
                                 // Process may already be gone or access may be denied
                                 Logger.Error("Failed to kill process with ID {0} for service '{1}' - {2}", processId, serviceName, ex.Message);
                             }
+                            WaitForServiceStatusUpdate(controller, ServiceControllerStatus.Stopped, TimeSpan.FromMilliseconds(3000));
                         }
                     }
                 }
@@ -257,6 +258,27 @@ namespace MyMonitorHub.Agent.Core
             }
 
             return 0;
+        }
+
+        /// <summary>
+        /// Polls the SCM for an updated service status after a forced process kill, since the SCM
+        /// may not reflect the new status immediately. Returns as soon as the expected status is
+        /// observed or the timeout elapses, whichever comes first.
+        /// </summary>
+        private static void WaitForServiceStatusUpdate(ServiceController controller, ServiceControllerStatus expectedStatus, TimeSpan timeout)
+        {
+            var pollInterval = TimeSpan.FromMilliseconds(250);
+            var stopwatch = Stopwatch.StartNew();
+            while (stopwatch.Elapsed < timeout)
+            {
+                controller.Refresh();
+                if (controller.Status == expectedStatus)
+                {
+                    return;
+                }
+                Thread.Sleep(pollInterval);
+            }
+            controller.Refresh();
         }
 
         private void OnServices(string command, string toGuid, string code)
